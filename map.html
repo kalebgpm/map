@@ -219,34 +219,25 @@
         });
 
       // Plot largest circles for all 4 stations
-      const allCircles = [];
       mapConfigs.forEach(cfg => {
-        // largest radius circle (first in array might be biggest? Let's check)
-        // To be safe, pick max radius in ranges:
         let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-
-        // Add circle
-        const circle = L.circle(cfg.center, {
+        L.circle(cfg.center, {
           radius: largestRange,
           fillColor: cfg.color,
           fillOpacity: 0.35,
           stroke: false
         }).addTo(allStationsMap);
-
-        allCircles.push(circle);
       });
 
       // Calculate bounds from all circles (center +/- radius)
       const latLngs = [];
 
       mapConfigs.forEach(cfg => {
+        let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
         const center = L.latLng(cfg.center[0], cfg.center[1]);
         latLngs.push(center);
 
-        // Calculate approximate bounds from radius in meters
-        // Convert meters to degrees latitude ~ 1 deg = 111,000m
-        const radiusDegrees = largestRange / 111000; // conservative for latitudes
-        // Add bounds to latLngs array to extend map view:
+        const radiusDegrees = largestRange / 111000;
         latLngs.push(L.latLng(center.lat + radiusDegrees, center.lng));
         latLngs.push(L.latLng(center.lat - radiusDegrees, center.lng));
         latLngs.push(L.latLng(center.lat, center.lng + radiusDegrees));
@@ -254,7 +245,7 @@
       });
 
       const bounds = L.latLngBounds(latLngs);
-      allStationsMap.fitBounds(bounds, {padding: [50, 50]});
+      allStationsMap.fitBounds(bounds, { padding: [50, 50] });
 
       maps.push(allStationsMap);
     }
@@ -271,3 +262,4 @@
   </script>
 </body>
 </html>
+
