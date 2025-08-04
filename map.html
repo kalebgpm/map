@@ -6,22 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
-    body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
-    .tabs { display:flex; background:#333; }
-    .tab-button { flex:1; padding:10px; background:#444; color:#fff; border:none; cursor:pointer; }
-    .tab-button.active { background:orange; color:#000; font-weight:bold; }
-    .map-container { display:none; height:calc(100% - 40px); }
-    .map-container.active { display:block; }
-    .leaflet-container { height:100%; width:100%; }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      background: #222;
+      padding: 10px;
+    }
+    .tab-button {
+      padding: 12px 24px;
+      border: none;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s ease;
+    }
+    .tab-button.active {
+      outline: 3px solid white;
+    }
+    .map-container {
+      display: none;
+      height: calc(100% - 60px);
+    }
+    .map-container.active {
+      display: block;
+    }
+    .leaflet-container {
+      height: 100%;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
   <div class="tabs">
-    <button onclick="showMap(0)" class="active">The Bull</button>
-    <button onclick="showMap(1)">BobFM</button>
-    <button onclick="showMap(2)">Cities</button>
-    <button onclick="showMap(3)">Magic</button>
+    <button onclick="showMap(0)" class="tab-button active" style="background-color: orange;">The Bull</button>
+    <button onclick="showMap(1)" class="tab-button" style="background-color: red;">BobFM</button>
+    <button onclick="showMap(2)" class="tab-button" style="background-color: gray;">Cities</button>
+    <button onclick="showMap(3)" class="tab-button" style="background-color: gray;">Magic</button>
   </div>
+
   <div id="map0" class="map-container active"></div>
   <div id="map1" class="map-container"></div>
   <div id="map2" class="map-container"></div>
@@ -32,33 +57,33 @@
 
   <script>
     const mapConfigs = [
-      { // The Bull
+      {
         center:[40.63834,-88.78116],
         ranges:[{m:88514,o:0.15},{m:56327,o:0.25},{m:49889,o:0.35}],
         tooltip:"107.7 & 92.1 The Bull",
         url:"https://www.1077thebull.com/",
         color:"orange"
       },
-      { // BobFM
+      {
         center:[40.4522,-88.9633],
         ranges:[{m:77248,o:0.15},{m:56327,o:0.25},{m:32187,o:0.35}],
         tooltip:"95.9 BobFM",
         url:"https://www.bob979fm.com/",
         color:"red"
       },
-      { // Cities
+      {
         center:[40.63834,-88.78116],
         ranges:[],
         tooltip:null,
         url:null,
-        color:"orange"
+        color:"gray"
       },
-      { // Magic
+      {
         center:[40.63834,-88.78116],
         ranges:[],
         tooltip:null,
         url:null,
-        color:"orange"
+        color:"gray"
       }
     ];
 
@@ -95,11 +120,9 @@
 
     function showMap(idx){
       document.querySelectorAll('.map-container').forEach((el,i)=>el.classList.toggle('active',i===idx));
-      document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+      document.querySelectorAll('.tab-button').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
       setTimeout(()=>maps[idx].invalidateSize(),200);
     }
   </script>
 </body>
 </html>
-
-
