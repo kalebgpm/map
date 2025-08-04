@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Map with Multiple Radii</title>
+  <title>Radio Range Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link
     rel="stylesheet"
@@ -10,9 +10,7 @@
     crossorigin=""
   />
   <style>
-    html,
-    body,
-    #map {
+    html, body, #map {
       height: 100%;
       margin: 0;
       padding: 0;
@@ -34,39 +32,43 @@
       attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    // Radius circle - 40 miles (~64,374 meters)
+    // Convert miles to meters (1 mile = 1609.34 meters)
+    const radius55 = 55 * 1609.34; // ≈ 88513.7 meters
+    const radius35 = 35 * 1609.34; // ≈ 56326.9 meters
+    const radius31 = 31 * 1609.34; // ≈ 49989.5 meters
+
+    // Largest circle - 55 miles
     L.circle([40.63834, -88.78116], {
-      radius: 64374,
+      radius: radius55,
       fillColor: 'orange',
       fillOpacity: 0.3,
       stroke: false,
     }).addTo(map);
 
-    // Radius circle - 15 miles (~24,140 meters)
+    // Middle circle - 35 miles
     L.circle([40.63834, -88.78116], {
-      radius: 24140,
+      radius: radius35,
       fillColor: 'blue',
       fillOpacity: 0.2,
       stroke: false,
     }).addTo(map);
 
-    // Radius circle - 12 miles (~19,312 meters), clickable
-    const smallCircle = L.circle([40.63834, -88.78116], {
-      radius: 19312,
+    // Smallest circle - 31 miles (clickable)
+    const clickableCircle = L.circle([40.63834, -88.78116], {
+      radius: radius31,
       fillColor: 'red',
       fillOpacity: 0.25,
       stroke: false,
     }).addTo(map);
 
-    smallCircle.on('click', () => {
+    clickableCircle.on('click', () => {
       window.open('https://www.1077thebull.com/', '_blank');
     });
 
-    // Optional: change cursor on hover for clickable circle
-    smallCircle.on('mouseover', () => {
+    clickableCircle.on('mouseover', () => {
       map.getContainer().style.cursor = 'pointer';
     });
-    smallCircle.on('mouseout', () => {
+    clickableCircle.on('mouseout', () => {
       map.getContainer().style.cursor = '';
     });
   </script>
