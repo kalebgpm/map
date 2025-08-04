@@ -6,7 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+    }
     .tabs {
       display: flex;
       background: #222;
@@ -21,11 +26,11 @@
       font-weight: bold;
       cursor: pointer;
       border-radius: 0;
-      border-bottom: 4px solid transparent;
-      transition: border-bottom 0.2s ease;
+      background-color: inherit;
+      transition: filter 0.2s ease;
     }
     .tab-button.active {
-      border-bottom: 4px solid white;
+      filter: brightness(0.7);
     }
     .map-container {
       display: none;
@@ -110,8 +115,7 @@
             const dist=turf.distance(
               turf.point(turf.center(feat).geometry.coordinates),
               turf.point([cfg.center[1],cfg.center[0]]),{units:'meters'});
-            let op = n==='Illinois'?1:
-                     (dist<1200000?1-(dist/1200000):0);
+            let op = n==='Illinois'?1:(dist<1200000?1-(dist/1200000):0);
             L.geoJSON(feat,{style:{color:'black',weight:1,opacity:op,fillOpacity:0}}).addTo(map);
           });
         });
@@ -120,8 +124,10 @@
     });
 
     function showMap(idx){
-      document.querySelectorAll('.map-container').forEach((el,i)=>el.classList.toggle('active',i===idx));
-      document.querySelectorAll('.tab-button').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+      document.querySelectorAll('.map-container').forEach((el,i)=>
+        el.classList.toggle('active',i===idx));
+      document.querySelectorAll('.tab-button').forEach((btn,i)=>
+        btn.classList.toggle('active',i===idx));
       setTimeout(()=>maps[idx].invalidateSize(),200);
     }
   </script>
