@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Radio Coverage Map</title>
+  <title>Tabbed Maps</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link
     rel="stylesheet"
@@ -10,92 +10,156 @@
     crossorigin=""
   />
   <style>
-    html, body, #map {
-      height: 100%;
+    body, html {
       margin: 0;
       padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+    }
+
+    .tabs {
+      display: flex;
+      background: #222;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+
+    .tab-button.active {
+      background: orange;
+      color: #000;
+    }
+
+    .map-container {
+      display: none;
+      height: calc(100vh - 40px);
+    }
+
+    .map-container.active {
+      display: block;
+    }
+
+    .leaflet-container {
+      height: 100%;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
+
+  <div class="tabs">
+    <button class="tab-button active" onclick="showMap(0)">Map 1</button>
+    <button class="tab-button" onclick="showMap(1)">Map 2</button>
+    <button class="tab-button" onclick="showMap(2)">Map 3</button>
+    <button class="tab-button" onclick="showMap(3)">Map 4</button>
+  </div>
+
+  <div id="map0" class="map-container active"></div>
+  <div id="map1" class="map-container"></div>
+  <div id="map2" class="map-container"></div>
+  <div id="map3" class="map-container"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
   <script>
     const center = [40.63834, -88.78116];
-    const map = L.map('map').setView(center, 7);
+    const mapIDs = ['map0', 'map1', 'map2', 'map3'];
+    const maps = [];
 
-    // Light base map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap & CartoDB'
-    }).addTo(map);
+    function initMap(containerId) {
+      const map = L.map(containerId).setView(center, 7);
 
-    // Big radius (55 miles = ~88513 meters)
-    L.circle(center, {
-      radius: 88513,
-      fillColor: 'orange',
-      fillOpacity: 0.25,
-      stroke: false
-    }).addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap & CartoDB'
+      }).addTo(map);
 
-    // Medium radius (35 miles = ~56327 meters)
-    L.circle(center, {
-      radius: 56327,
-      fillColor: 'orange',
-      fillOpacity: 0.30,
-      stroke: false
-    }).addTo(map);
+      L.circle(center, {
+        radius: 88513,
+        fillColor: 'orange',
+        fillOpacity: 0.15,
+        stroke: false
+      }).addTo(map);
 
-    // State outlines
-    const maxFadeDistance = 1200000; // meters
+      L.circle(center, {
+        radius: 56327,
+        fillColor: 'orange',
+        fillOpacity: 0.25,
+        stroke: false
+      }).addTo(map);
 
-    fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-      .then(res => res.json())
-      .then(data => {
-        data.features.forEach(feature => {
-          const name = feature.properties.name;
-
-          const stateCenter = turf.center(feature).geometry.coordinates;
-          const from = turf.point(stateCenter);
-          const to = turf.point([center[1], center[0]]);
-          const distance = turf.distance(from, to, { units: 'meters' });
-
-          let opacity = 0;
-          if (name === 'Illinois') {
-            opacity = 1;
-          } else if (distance < maxFadeDistance) {
-            opacity = 1 - (distance / maxFadeDistance);
-          }
-
-          L.geoJSON(feature, {
-            style: {
-              color: 'black',
-              weight: 1,
-              opacity: opacity,
-              fillOpacity: 0
+      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+        .then(res => res.json())
+        .then(data => {
+          data.features.forEach(feature => {
+            const name = feature.properties.name;
+            const stateCenter = turf.center(feature).geometry.coordinates;
+            const from = turf.point(stateCenter);
+            const to = turf.point([center[1], center[0]]);
+            const distance = turf.distance(from, to, { units: 'meters' });
+            let opacity = 0;
+            if (name === 'Illinois') {
+              opacity = 1;
+            } else if (distance < 1200000) {
+              opacity = 1 - (distance / 1200000);
             }
+
+            L.geoJSON(feature, {
+              style: {
+                color: 'black',
+                weight: 1,
+                opacity: opacity,
+                fillOpacity: 0
+              }
+            }).addTo(map);
+          });
+
+          const smallCircle = L.circle(center, {
+            radius: 49890,
+            fillColor: 'orange',
+            fillOpacity: 0.35,
+            stroke: false
           }).addTo(map);
+
+          smallCircle.bindTooltip("107.7 & 92.1 The Bull", {
+            direction: 'top',
+            opacity: 0.9
+          });
+
+          smallCircle.on('click', () => {
+            window.open('https://www.1077thebull.com/', '_blank');
+          });
         });
 
-        // Smallest radius (31 miles = ~49890 meters)
-        const smallCircle = L.circle(center, {
-          radius: 49890,
-          fillColor: 'orange',
-          fillOpacity: 0.35,
-          stroke: false
-        }).addTo(map);
+      return map;
+    }
 
-        smallCircle.bindTooltip("107.7 & 92.1 The Bull", {
-          permanent: false,
-          direction: 'top',
-          opacity: 0.9
-        });
+    mapIDs.forEach((id, i) => {
+      setTimeout(() => {
+        maps[i] = initMap(id);
+      }, i * 200); // stagger map loading
+    });
 
-        smallCircle.on('click', () => {
-          window.open('https://www.1077thebull.com/', '_blank');
-        });
+    function showMap(index) {
+      document.querySelectorAll('.map-container').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
       });
+      document.querySelectorAll('.tab-button').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+      });
+      // Resize map when shown
+      setTimeout(() => {
+        if (maps[index]) maps[index].invalidateSize();
+      }, 300);
+    }
   </script>
 </body>
 </html>
