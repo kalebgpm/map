@@ -2,158 +2,104 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Multi-Map Viewer</title>
+  <title>Tabbed Maps</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-    }
-    #tabs {
-      display: flex;
-      justify-content: center;
-      background: #333;
-    }
-    #tabs button {
-      flex: 1;
-      padding: 10px;
-      background: #444;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    #tabs button.active {
-      background: orange;
-      font-weight: bold;
-    }
-    .map-container {
-      display: none;
-      height: calc(100% - 40px);
-    }
-    .map-container.active {
-      display: block;
-    }
-    .leaflet-container {
-      width: 100%;
-      height: 100%;
-    }
+    body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
+    .tabs { display:flex; background:#333; }
+    .tab-button { flex:1; padding:10px; background:#444; color:#fff; border:none; cursor:pointer; }
+    .tab-button.active { background:orange; color:#000; font-weight:bold; }
+    .map-container { display:none; height:calc(100% - 40px); }
+    .map-container.active { display:block; }
+    .leaflet-container { height:100%; width:100%; }
   </style>
 </head>
 <body>
-
-  <div id="tabs">
+  <div class="tabs">
     <button onclick="showMap(0)" class="active">The Bull</button>
     <button onclick="showMap(1)">BobFM</button>
     <button onclick="showMap(2)">Cities</button>
     <button onclick="showMap(3)">Magic</button>
   </div>
-
   <div id="map0" class="map-container active"></div>
   <div id="map1" class="map-container"></div>
   <div id="map2" class="map-container"></div>
   <div id="map3" class="map-container"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
   <script>
     const mapConfigs = [
-      {
-        center: [40.63834, -88.78116], // The Bull
-        ranges: [
-          { meters: 88514, opacity: 0.15 },
-          { meters: 56327, opacity: 0.25 },
-          { meters: 49889, opacity: 0.35 }
-        ],
-        tooltipText: "107.7 & 92.1 The Bull",
-        website: "https://www.1077thebull.com/"
+      { // The Bull
+        center:[40.63834,-88.78116],
+        ranges:[{m:88514,o:0.15},{m:56327,o:0.25},{m:49889,o:0.35}],
+        tooltip:"107.7 & 92.1 The Bull",
+        url:"https://www.1077thebull.com/",
+        color:"orange"
       },
-      {
-        center: [40.4522, -88.9633], // BobFM (new)
-        ranges: [
-          { meters: 77248, opacity: 0.15 },   // 48 miles
-          { meters: 56327, opacity: 0.25 },   // 35 miles
-          { meters: 32187, opacity: 0.35 }    // 20 miles
-        ],
-        tooltipText: "97.9 BobFM",
-        website: "https://www.bob979fm.com/"
+      { // BobFM
+        center:[40.4522,-88.9633],
+        ranges:[{m:77248,o:0.15},{m:56327,o:0.25},{m:32187,o:0.35}],
+        tooltip:"95.9 BobFM",
+        url:"https://www.bob979fm.com/",
+        color:"red"
       },
-      {
-        center: [40.0, -89.0], // Cities
-        ranges: [],
-        tooltipText: "",
-        website: ""
+      { // Cities
+        center:[40.63834,-88.78116],
+        ranges:[],
+        tooltip:null,
+        url:null,
+        color:"orange"
       },
-      {
-        center: [39.8, -88.9], // Magic
-        ranges: [],
-        tooltipText: "",
-        website: ""
+      { // Magic
+        center:[40.63834,-88.78116],
+        ranges:[],
+        tooltip:null,
+        url:null,
+        color:"orange"
       }
     ];
 
     const maps = [];
 
-    mapConfigs.forEach((config, index) => {
-      const map = L.map(`map${index}`, {
-        zoomControl: true
-      }).setView(config.center, 7);
+    mapConfigs.forEach((cfg,i)=>{
+      const map = L.map(`map${i}`).setView(cfg.center,7);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+        attribution:'&copy; OpenStreetMap & CartoDB'}).addTo(map);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      config.ranges.forEach((range, i) => {
-        const circle = L.circle(config.center, {
-          radius: range.meters,
-          fillColor: 'orange',
-          fillOpacity: range.opacity,
-          stroke: false
-        }).addTo(map);
-
-        if (i === config.ranges.length - 1 && config.website) {
-          circle.bindTooltip(config.tooltipText, {
-            permanent: false,
-            direction: 'top',
-            opacity: 0.9
-          });
-
-          circle.on('click', () => {
-            window.open(config.website, '_blank');
-          });
-
-          circle.on('mouseover', function () {
-            this.openTooltip();
-          });
-
-          circle.on('mouseout', function () {
-            this.closeTooltip();
-          });
+      cfg.ranges.forEach((r,j)=>{
+        const c = L.circle(cfg.center,{radius:r.m, fillColor:cfg.color, fillOpacity:r.o, stroke:false}).addTo(map);
+        if(j===cfg.ranges.length-1 && cfg.tooltip){
+          c.bindTooltip(cfg.tooltip,{direction:'top',opacity:0.9});
+          c.on('click',()=>window.open(cfg.url,'_blank'));
         }
       });
+
+      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+        .then(r=>r.json()).then(data=>{
+          data.features.forEach(feat=>{
+            const n=feat.properties.name;
+            const dist=turf.distance(
+              turf.point(turf.center(feat).geometry.coordinates),
+              turf.point([cfg.center[1],cfg.center[0]]),{units:'meters'});
+            let op = n==='Illinois'?1:
+                     (dist<1200000?1-(dist/1200000):0);
+            L.geoJSON(feat,{style:{color:'black',weight:1,opacity:op,fillOpacity:0}}).addTo(map);
+          });
+        });
 
       maps.push(map);
     });
 
-    function showMap(index) {
-      document.querySelectorAll('.map-container').forEach((el, i) => {
-        el.classList.toggle('active', i === index);
-      });
-
-      document.querySelectorAll('#tabs button').forEach((btn, i) => {
-        btn.classList.toggle('active', i === index);
-      });
-
-      setTimeout(() => {
-        maps[index].invalidateSize();
-      }, 200);
+    function showMap(idx){
+      document.querySelectorAll('.map-container').forEach((el,i)=>el.classList.toggle('active',i===idx));
+      document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+      setTimeout(()=>maps[idx].invalidateSize(),200);
     }
   </script>
 </body>
 </html>
-
-
-
 
 
