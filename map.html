@@ -15,173 +15,153 @@
       margin: 0;
     }
 
-    #buttons {
+    .tab-buttons {
       display: flex;
-      width: 100%;
+      margin: 0;
+      padding: 0;
     }
 
     .tab-button {
       flex: 1;
-      padding: 10px;
+      padding: 10px 15px;
       border: none;
-      font-size: 16px;
+      border-radius: 0;
+      margin: 0;
+      color: white;
       font-weight: bold;
       cursor: pointer;
-      color: white;
-      border-radius: 0;
+      transition: background 0.3s;
     }
 
-    .active {
-      outline: 3px solid white;
-    }
+    .tab-button.orange { background: #f57c00; }
+    .tab-button.red { background: #c62828; }
+    .tab-button.gray { background: #777; }
 
-    .bull { background-color: orange; }
-    .bob { background-color: red; }
-    .grey { background-color: #555; }
+    .tab-button.active.orange { background: #e65100; }
+    .tab-button.active.red { background: #b71c1c; }
+    .tab-button.active.gray { background: #555; }
 
-    #map-container > div {
+    .map-tab {
       display: none;
-      height: calc(100vh - 40px);
+      height: calc(100% - 45px);
     }
 
-    #map1.active, #map2.active, #map3.active, #map4.active {
-      display: block;
-    }
-
-    .pulsing-circle {
-      animation: pulse 4s ease-in-out infinite;
-      transform-origin: center;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-      50% {
-        transform: scale(1.1);
-        opacity: 0.7;
-      }
+    #map1, #map2, #map3, #map4 {
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
 
-  <div id="buttons">
-    <button class="tab-button bull active" onclick="showMap(1)">The Bull</button>
-    <button class="tab-button bob" onclick="showMap(2)">BobFM</button>
-    <button class="tab-button grey" onclick="showMap(3)">Cities</button>
-    <button class="tab-button grey" onclick="showMap(4)">Magic</button>
+  <div class="tab-buttons">
+    <button class="tab-button orange active" onclick="showMap(0)">The Bull</button>
+    <button class="tab-button red" onclick="showMap(1)">BobFM</button>
+    <button class="tab-button gray" onclick="showMap(2)">Cities</button>
+    <button class="tab-button gray" onclick="showMap(3)">Magic</button>
   </div>
 
-  <div id="map-container">
-    <div id="map1" class="active"></div>
+  <div class="map-tab" style="display: block;">
+    <div id="map1"></div>
+  </div>
+  <div class="map-tab">
     <div id="map2"></div>
+  </div>
+  <div class="map-tab">
     <div id="map3"></div>
+  </div>
+  <div class="map-tab">
     <div id="map4"></div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-providers@1.13.0/leaflet-providers.min.js"></script>
-
   <script>
-    const maps = [];
-    const mapConfigs = [
-      {
-        id: 'map1',
-        center: [40.63834, -88.78116],
-        color: 'orange',
-        ranges: [
-          { miles: 55, opacity: 0.3 },
-          { miles: 35, opacity: 0.5 },
-          { miles: 31, opacity: 0.7 }
-        ],
-        link: 'https://www.1077thebull.com/',
-        label: '107.7 & 92.1 The Bull'
-      },
-      {
-        id: 'map2',
-        center: [40.4522, -88.9633], // 40° 27' 08" N, 88° 57' 48" W
-        color: 'red',
-        ranges: [
-          { miles: 48, opacity: 0.3 },
-          { miles: 35, opacity: 0.5 },
-          { miles: 20, opacity: 0.7 }
-        ],
-        link: 'https://bob979fm.com/',
-        label: '97.9 Bob FM'
-      },
-      {
-        id: 'map3',
-        center: [40.63834, -88.78116],
-        color: 'gray',
-        ranges: [],
-      },
-      {
-        id: 'map4',
-        center: [40.63834, -88.78116],
-        color: 'gray',
-        ranges: [],
-      }
-    ];
-
-    function createMap(cfg, idx) {
-      const map = L.map(cfg.id, {
-        zoomControl: true,
-        scrollWheelZoom: true
-      }).setView(cfg.center, 7);
-
-      L.tileLayer.provider('CartoDB.Positron').addTo(map);
-
-      // State borders (outline Illinois)
-      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(res => res.json())
-        .then(data => {
-          L.geoJSON(data, {
-            style: feature => ({
-              color: feature.properties.name === "Illinois" ? 'black' : '#000',
-              weight: feature.properties.name === "Illinois" ? 2 : 1,
-              opacity: feature.properties.name === "Illinois" ? 1 : 0.1
-            })
-          }).addTo(map);
-        });
-
-      cfg.ranges.forEach((r, i) => {
-        const radius = r.miles * 1609.34; // convert miles to meters
-        const circle = L.circle(cfg.center, {
-          radius,
-          fillColor: cfg.color,
-          fillOpacity: r.opacity,
-          color: cfg.color,
-          weight: 0,
-          className: 'pulsing-circle'
-        }).addTo(map);
-
-        // Add label and link to smallest circle
-        if (i === cfg.ranges.length - 1 && cfg.link && cfg.label) {
-          circle.bindTooltip(cfg.label, { permanent: false, direction: 'top' });
-          circle.on('click', () => window.open(cfg.link, '_blank'));
-        }
-      });
-
-      maps[idx] = map;
-    }
-
-    mapConfigs.forEach((cfg, i) => createMap(cfg, i));
-
     function showMap(index) {
-      document.querySelectorAll('#map-container > div').forEach((m, i) => {
-        m.classList.remove('active');
-        if (i === index - 1) m.classList.add('active');
+      const maps = document.querySelectorAll('.map-tab');
+      maps.forEach((map, i) => {
+        map.style.display = i === index ? 'block' : 'none';
       });
 
-      document.querySelectorAll('.tab-button').forEach((b, i) => {
-        b.classList.toggle('active', i === index - 1);
+      const buttons = document.querySelectorAll('.tab-button');
+      buttons.forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
       });
-
-      maps[index - 1].invalidateSize();
     }
-  </script>
 
+    // Map 1 - The Bull
+    const map1 = L.map('map1').setView([40.63834, -88.78116], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map1);
+
+    L.circle([40.63834, -88.78116], {
+      radius: 88500, // 55 miles
+      fillColor: 'orange',
+      fillOpacity: 0.2,
+      stroke: false
+    }).addTo(map1);
+
+    L.circle([40.63834, -88.78116], {
+      radius: 56300, // 35 miles
+      fillColor: 'orange',
+      fillOpacity: 0.4,
+      stroke: false
+    }).addTo(map1);
+
+    const smallestBull = L.circle([40.63834, -88.78116], {
+      radius: 49900, // 31 miles
+      fillColor: 'orange',
+      fillOpacity: 0.6,
+      stroke: false
+    }).addTo(map1);
+
+    smallestBull.bindTooltip("107.7 & 92.1 The Bull", { permanent: false, direction: "top" });
+    smallestBull.on('click', function () {
+      window.open("https://www.1077thebull.com/", "_blank");
+    });
+
+    // Map 2 - BobFM
+    const map2 = L.map('map2').setView([40.4522, -88.9633], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map2);
+
+    L.circle([40.4522, -88.9633], {
+      radius: 77200, // 48 miles
+      fillColor: 'red',
+      fillOpacity: 0.2,
+      stroke: false
+    }).addTo(map2);
+
+    L.circle([40.4522, -88.9633], {
+      radius: 56300, // 35 miles
+      fillColor: 'red',
+      fillOpacity: 0.4,
+      stroke: false
+    }).addTo(map2);
+
+    const smallestBob = L.circle([40.4522, -88.9633], {
+      radius: 32100, // 20 miles
+      fillColor: 'red',
+      fillOpacity: 0.6,
+      stroke: false
+    }).addTo(map2);
+
+    smallestBob.bindTooltip("97.9 Bob FM", { permanent: false, direction: "top" });
+    smallestBob.on('click', function () {
+      window.open("https://bob979fm.com/", "_blank");
+    });
+
+    // Maps 3 and 4 are placeholders for now
+    const map3 = L.map('map3').setView([40.6, -88.8], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map3);
+
+    const map4 = L.map('map4').setView([40.6, -88.8], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map4);
+  </script>
 </body>
 </html>
