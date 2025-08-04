@@ -52,10 +52,10 @@
     }
     /* Magic tab */
     .tab-magic {
-      --bg-color: #555555;
+      --bg-color: #800000; /* maroon */
     }
     .tab-magic:hover {
-      background-color: #777777;
+      background-color: #a00000;
     }
     /* Active tab brightens a bit */
     .tab-button.active {
@@ -103,7 +103,7 @@
         ],
         tooltip: "107.7 & 92.1 The Bull",
         url: "https://www.1077thebull.com/",
-        color: "#cc7000" // matches tab default
+        color: "#cc7000" // darker orange
       },
       {
         center: [40.4522, -88.9633],
@@ -128,11 +128,15 @@
         color: "#004080"
       },
       {
-        center: [40.63834, -88.78116],
-        ranges: [],
-        tooltip: null,
-        url: null,
-        color: "gray"
+        center: [40.4911, -88.7206],
+        ranges: [
+          { m: 50 * MILE_TO_METERS, o: 0.15 },
+          { m: 32 * MILE_TO_METERS, o: 0.25 },
+          { m: 24 * MILE_TO_METERS, o: 0.35 }
+        ],
+        tooltip: "Magic",
+        url: "https://www.magic995fm.com/",
+        color: "#800000"
       }
     ];
 
