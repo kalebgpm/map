@@ -2,8 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Radio Range Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radio Coverage Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -20,56 +20,45 @@
 <body>
   <div id="map"></div>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    const map = L.map('map').setView([40.63834, -88.78116], 7);
+    const map = L.map('map').setView([40.63834, -88.78116], 8);
 
-    // Base tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    // Light minimal tiles (CartoDB Positron)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap, &copy; CartoDB',
     }).addTo(map);
 
-    const center = [40.63834, -88.78116];
-    const radius55 = 55 * 1609.34;
-    const radius35 = 35 * 1609.34;
-    const radius31 = 31 * 1609.34;
+    // Colors and Opacity
+    const orange = '#FFA500';
 
-    // Outer radius - lightest orange
-    L.circle(center, {
-      radius: radius55,
-      fillColor: 'orange',
-      fillOpacity: 0.15,
-      stroke: false,
-    }).addTo(map);
-
-    // Middle radius - medium orange
-    L.circle(center, {
-      radius: radius35,
-      fillColor: 'orange',
+    // 55 miles (Fringe range) - slightly higher opacity than before
+    L.circle([40.63834, -88.78116], {
+      radius: 88514, // in meters
+      fillColor: orange,
       fillOpacity: 0.3,
-      stroke: false,
+      stroke: false
     }).addTo(map);
 
-    // Inner radius - darkest orange, clickable
-    const clickableCircle = L.circle(center, {
-      radius: radius31,
-      fillColor: 'orange',
+    // 35 miles (Local range)
+    L.circle([40.63834, -88.78116], {
+      radius: 56327,
+      fillColor: orange,
+      fillOpacity: 0.4,
+      stroke: false
+    }).addTo(map);
+
+    // 31 miles (Core/distant range) - clickable
+    const coreCircle = L.circle([40.63834, -88.78116], {
+      radius: 49890,
+      fillColor: orange,
       fillOpacity: 0.5,
-      stroke: false,
+      stroke: false
     }).addTo(map);
 
-    clickableCircle.on('click', () => {
+    // Click to visit site
+    coreCircle.on('click', function () {
       window.open('https://www.1077thebull.com/', '_blank');
-    });
-
-    clickableCircle.on('mouseover', () => {
-      map.getContainer().style.cursor = 'pointer';
-    });
-    clickableCircle.on('mouseout', () => {
-      map.getContainer().style.cursor = '';
     });
   </script>
 </body>
