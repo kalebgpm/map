@@ -2,15 +2,17 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Map with Radius</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map with Multiple Radii</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   />
   <style>
-    html, body, #map {
+    html,
+    body,
+    #map {
       height: 100%;
       margin: 0;
       padding: 0;
@@ -29,16 +31,44 @@
 
     // Base map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    // Radius circle - 40 miles = ~64,374 meters
+    // Radius circle - 40 miles (~64,374 meters)
     L.circle([40.63834, -88.78116], {
       radius: 64374,
       fillColor: 'orange',
       fillOpacity: 0.3,
-      stroke: false
+      stroke: false,
     }).addTo(map);
+
+    // Radius circle - 15 miles (~24,140 meters)
+    L.circle([40.63834, -88.78116], {
+      radius: 24140,
+      fillColor: 'blue',
+      fillOpacity: 0.2,
+      stroke: false,
+    }).addTo(map);
+
+    // Radius circle - 12 miles (~19,312 meters), clickable
+    const smallCircle = L.circle([40.63834, -88.78116], {
+      radius: 19312,
+      fillColor: 'red',
+      fillOpacity: 0.25,
+      stroke: false,
+    }).addTo(map);
+
+    smallCircle.on('click', () => {
+      window.open('https://www.1077thebull.com/', '_blank');
+    });
+
+    // Optional: change cursor on hover for clickable circle
+    smallCircle.on('mouseover', () => {
+      map.getContainer().style.cursor = 'pointer';
+    });
+    smallCircle.on('mouseout', () => {
+      map.getContainer().style.cursor = '';
+    });
   </script>
 </body>
 </html>
