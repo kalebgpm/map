@@ -25,16 +25,16 @@
     crossorigin=""
   ></script>
   <script>
-    const map = L.map('map').setView([40.63834, -88.78116], 7);
+    const map = L.map('map').setView([40.63834, -88.78116], 15);
 
     // Base map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Radius circle - 162 miles = ~260,000 meters
+    // Radius circle - 135 meters
     L.circle([40.63834, -88.78116], {
-      radius: 260000,
+      radius: 135,
       fillColor: 'orange',
       fillOpacity: 0.3,
       stroke: false
