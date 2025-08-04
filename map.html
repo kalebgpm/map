@@ -56,10 +56,10 @@
 <body>
 
   <div class="tabs">
-    <button class="tab-button active" onclick="showMap(0)">Map 1</button>
-    <button class="tab-button" onclick="showMap(1)">Map 2</button>
-    <button class="tab-button" onclick="showMap(2)">Map 3</button>
-    <button class="tab-button" onclick="showMap(3)">Map 4</button>
+    <button class="tab-button active" onclick="showMap(0)">The Bull</button>
+    <button class="tab-button" onclick="showMap(1)">BobFM</button>
+    <button class="tab-button" onclick="showMap(2)">Cities</button>
+    <button class="tab-button" onclick="showMap(3)">Magic</button>
   </div>
 
   <div id="map0" class="map-container active"></div>
@@ -71,30 +71,34 @@
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
   <script>
-    const center = [40.63834, -88.78116];
     const mapIDs = ['map0', 'map1', 'map2', 'map3'];
     const maps = [];
 
-    function initMap(containerId) {
+    function initMap(containerId, center, ranges, tooltipText, website) {
       const map = L.map(containerId).setView(center, 7);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      L.circle(center, {
-        radius: 88513,
-        fillColor: 'orange',
-        fillOpacity: 0.15,
-        stroke: false
-      }).addTo(map);
+      ranges.forEach((range, i) => {
+        const circle = L.circle(center, {
+          radius: range.meters,
+          fillColor: 'orange',
+          fillOpacity: range.opacity,
+          stroke: false
+        }).addTo(map);
 
-      L.circle(center, {
-        radius: 56327,
-        fillColor: 'orange',
-        fillOpacity: 0.25,
-        stroke: false
-      }).addTo(map);
+        if (i === ranges.length - 1 && tooltipText && website) {
+          circle.bindTooltip(tooltipText, {
+            direction: 'top',
+            opacity: 0.9
+          });
+          circle.on('click', () => {
+            window.open(website, '_blank');
+          });
+        }
+      });
 
       fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
         .then(res => res.json())
@@ -121,31 +125,51 @@
               }
             }).addTo(map);
           });
-
-          const smallCircle = L.circle(center, {
-            radius: 49890,
-            fillColor: 'orange',
-            fillOpacity: 0.35,
-            stroke: false
-          }).addTo(map);
-
-          smallCircle.bindTooltip("107.7 & 92.1 The Bull", {
-            direction: 'top',
-            opacity: 0.9
-          });
-
-          smallCircle.on('click', () => {
-            window.open('https://www.1077thebull.com/', '_blank');
-          });
         });
 
       return map;
     }
 
+    const mapConfigs = [
+      {
+        center: [40.63834, -88.78116],
+        ranges: [
+          { meters: 88513, opacity: 0.15 },
+          { meters: 56327, opacity: 0.25 },
+          { meters: 49890, opacity: 0.35 }
+        ],
+        tooltipText: "107.7 & 92.1 The Bull",
+        website: "https://www.1077thebull.com/"
+      },
+      {
+        center: [40.4522, -88.9633],
+        ranges: [
+          { meters: 105 * 1609.34, opacity: 0.15 },  // ~65 miles
+          { meters: 84 * 1609.34, opacity: 0.25 },   // ~52 miles
+          { meters: 342 * 1609.34, opacity: 0.35 }   // ~213 miles
+        ],
+        tooltipText: "95.9 BobFM",
+        website: "https://www.959bobfm.com/"
+      },
+      {
+        center: [40.63834, -88.78116],
+        ranges: [],
+        tooltipText: null,
+        website: null
+      },
+      {
+        center: [40.63834, -88.78116],
+        ranges: [],
+        tooltipText: null,
+        website: null
+      }
+    ];
+
     mapIDs.forEach((id, i) => {
       setTimeout(() => {
-        maps[i] = initMap(id);
-      }, i * 200); // stagger map loading
+        const config = mapConfigs[i];
+        maps[i] = initMap(id, config.center, config.ranges, config.tooltipText, config.website);
+      }, i * 300);
     });
 
     function showMap(index) {
@@ -155,7 +179,6 @@
       document.querySelectorAll('.tab-button').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
       });
-      // Resize map when shown
       setTimeout(() => {
         if (maps[index]) maps[index].invalidateSize();
       }, 300);
@@ -163,6 +186,7 @@
   </script>
 </body>
 </html>
+
 
 
 
