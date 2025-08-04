@@ -27,37 +27,37 @@
   <script>
     const map = L.map('map').setView([40.63834, -88.78116], 7);
 
-    // Base map tiles
+    // Base tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    // Convert miles to meters (1 mile = 1609.34 meters)
-    const radius55 = 55 * 1609.34; // ≈ 88513.7 meters
-    const radius35 = 35 * 1609.34; // ≈ 56326.9 meters
-    const radius31 = 31 * 1609.34; // ≈ 49989.5 meters
+    const center = [40.63834, -88.78116];
+    const radius55 = 55 * 1609.34;
+    const radius35 = 35 * 1609.34;
+    const radius31 = 31 * 1609.34;
 
-    // Largest circle - 55 miles
-    L.circle([40.63834, -88.78116], {
+    // Outer radius - lightest orange
+    L.circle(center, {
       radius: radius55,
+      fillColor: 'orange',
+      fillOpacity: 0.15,
+      stroke: false,
+    }).addTo(map);
+
+    // Middle radius - medium orange
+    L.circle(center, {
+      radius: radius35,
       fillColor: 'orange',
       fillOpacity: 0.3,
       stroke: false,
     }).addTo(map);
 
-    // Middle circle - 35 miles
-    L.circle([40.63834, -88.78116], {
-      radius: radius35,
-      fillColor: 'blue',
-      fillOpacity: 0.2,
-      stroke: false,
-    }).addTo(map);
-
-    // Smallest circle - 31 miles (clickable)
-    const clickableCircle = L.circle([40.63834, -88.78116], {
+    // Inner radius - darkest orange, clickable
+    const clickableCircle = L.circle(center, {
       radius: radius31,
-      fillColor: 'red',
-      fillOpacity: 0.25,
+      fillColor: 'orange',
+      fillOpacity: 0.5,
       stroke: false,
     }).addTo(map);
 
