@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Radio Coverage Map</title>
+  <title>Map with Radius</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link
     rel="stylesheet"
@@ -17,63 +17,80 @@
     }
     .leaflet-tooltip {
       font-weight: bold;
-      color: #333;
-      background-color: rgba(255, 255, 255, 0.85);
+      color: black;
+      background: rgba(255, 255, 255, 0.85);
       border: 1px solid #ccc;
-      padding: 4px 8px;
       border-radius: 4px;
+      padding: 4px 6px;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
   <script>
-    const map = L.map('map').setView([40.63834, -88.78116], 8);
+    const map = L.map('map').setView([40.63834, -88.78116], 7);
 
-    // Light minimal tiles (CartoDB Positron)
+    // Light minimal tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap, &copy; CartoDB',
     }).addTo(map);
 
-    const orange = '#FFA500';
+    const center = [40.63834, -88.78116];
 
-    // 55 miles (Fringe range)
-    L.circle([40.63834, -88.78116], {
-      radius: 88514,
-      fillColor: orange,
-      fillOpacity: 0.3,
+    // Large circle - Fringe range
+    L.circle(center, {
+      radius: 88500, // 55 miles in meters
+      fillColor: 'orange',
+      fillOpacity: 0.25,
       stroke: false
     }).addTo(map);
 
-    // 35 miles (Local range)
-    L.circle([40.63834, -88.78116], {
-      radius: 56327,
-      fillColor: orange,
-      fillOpacity: 0.4,
+    // Mid circle - Local range
+    L.circle(center, {
+      radius: 56300, // 35 miles
+      fillColor: 'orange',
+      fillOpacity: 0.35,
       stroke: false
     }).addTo(map);
 
-    // 31 miles (Core range) - clickable and hover text
-    const coreCircle = L.circle([40.63834, -88.78116], {
-      radius: 49890,
-      fillColor: orange,
+    // Smallest circle - Distant/Primary range
+    const smallestCircle = L.circle(center, {
+      radius: 49890, // 31 miles
+      fillColor: 'orange',
       fillOpacity: 0.5,
       stroke: false
     }).addTo(map);
 
-    // Tooltip on hover
-    coreCircle.bindTooltip("107.7 & 92.1 The Bull", {
+    // Add hover tooltip and click to smallest circle
+    smallestCircle.bindTooltip("107.7 & 92.1 The Bull", {
       permanent: false,
       direction: 'top',
       opacity: 0.9
     });
 
-    // Click to open website
-    coreCircle.on('click', function () {
+    smallestCircle.on('click', () => {
       window.open('https://www.1077thebull.com/', '_blank');
     });
+
+    // Illinois state border (GeoJSON)
+    fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+      .then(res => res.json())
+      .then(data => {
+        const illinois = data.features.find(state => state.properties.name === 'Illinois');
+        L.geoJSON(illinois, {
+          style: {
+            color: 'black',
+            weight: 2,
+            fillOpacity: 0
+          }
+        }).addTo(map);
+      });
   </script>
 </body>
 </html>
+
