@@ -2,64 +2,53 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Tabbed Maps</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
+  <title>Multi-Map Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body, html {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
     }
-
-    .tabs {
+    #tabs {
       display: flex;
-      background: #222;
+      justify-content: center;
+      background: #333;
     }
-
-    .tab-button {
+    #tabs button {
       flex: 1;
       padding: 10px;
-      text-align: center;
-      background: #333;
-      color: #fff;
-      cursor: pointer;
+      background: #444;
+      color: white;
       border: none;
-      outline: none;
+      cursor: pointer;
     }
-
-    .tab-button.active {
+    #tabs button.active {
       background: orange;
-      color: #000;
+      font-weight: bold;
     }
-
     .map-container {
       display: none;
-      height: calc(100vh - 40px);
+      height: calc(100% - 40px);
     }
-
     .map-container.active {
       display: block;
     }
-
     .leaflet-container {
-      height: 100%;
       width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
 
-  <div class="tabs">
-    <button class="tab-button active" onclick="showMap(0)">The Bull</button>
-    <button class="tab-button" onclick="showMap(1)">BobFM</button>
-    <button class="tab-button" onclick="showMap(2)">Cities</button>
-    <button class="tab-button" onclick="showMap(3)">Magic</button>
+  <div id="tabs">
+    <button onclick="showMap(0)" class="active">The Bull</button>
+    <button onclick="showMap(1)">BobFM</button>
+    <button onclick="showMap(2)">Cities</button>
+    <button onclick="showMap(3)">Magic</button>
   </div>
 
   <div id="map0" class="map-container active"></div>
@@ -67,125 +56,103 @@
   <div id="map2" class="map-container"></div>
   <div id="map3" class="map-container"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const mapIDs = ['map0', 'map1', 'map2', 'map3'];
+    const mapConfigs = [
+      {
+        center: [40.63834, -88.78116], // The Bull
+        ranges: [
+          { meters: 88514, opacity: 0.15 },
+          { meters: 56327, opacity: 0.25 },
+          { meters: 49889, opacity: 0.35 }
+        ],
+        tooltipText: "107.7 & 92.1 The Bull",
+        website: "https://www.1077thebull.com/"
+      },
+      {
+        center: [40.4522, -88.9633], // BobFM (new)
+        ranges: [
+          { meters: 77248, opacity: 0.15 },   // 48 miles
+          { meters: 56327, opacity: 0.25 },   // 35 miles
+          { meters: 32187, opacity: 0.35 }    // 20 miles
+        ],
+        tooltipText: "95.9 BobFM",
+        website: "https://www.959bobfm.com/"
+      },
+      {
+        center: [40.0, -89.0], // Cities
+        ranges: [],
+        tooltipText: "",
+        website: ""
+      },
+      {
+        center: [39.8, -88.9], // Magic
+        ranges: [],
+        tooltipText: "",
+        website: ""
+      }
+    ];
+
     const maps = [];
 
-    function initMap(containerId, center, ranges, tooltipText, website) {
-      const map = L.map(containerId).setView(center, 7);
+    mapConfigs.forEach((config, index) => {
+      const map = L.map(`map${index}`, {
+        zoomControl: true
+      }).setView(config.center, 7);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap & CartoDB'
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      ranges.forEach((range, i) => {
-        const circle = L.circle(center, {
+      config.ranges.forEach((range, i) => {
+        const circle = L.circle(config.center, {
           radius: range.meters,
           fillColor: 'orange',
           fillOpacity: range.opacity,
           stroke: false
         }).addTo(map);
 
-        if (i === ranges.length - 1 && tooltipText && website) {
-          circle.bindTooltip(tooltipText, {
+        if (i === config.ranges.length - 1 && config.website) {
+          circle.bindTooltip(config.tooltipText, {
+            permanent: false,
             direction: 'top',
             opacity: 0.9
           });
+
           circle.on('click', () => {
-            window.open(website, '_blank');
+            window.open(config.website, '_blank');
+          });
+
+          circle.on('mouseover', function () {
+            this.openTooltip();
+          });
+
+          circle.on('mouseout', function () {
+            this.closeTooltip();
           });
         }
       });
 
-      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(res => res.json())
-        .then(data => {
-          data.features.forEach(feature => {
-            const name = feature.properties.name;
-            const stateCenter = turf.center(feature).geometry.coordinates;
-            const from = turf.point(stateCenter);
-            const to = turf.point([center[1], center[0]]);
-            const distance = turf.distance(from, to, { units: 'meters' });
-            let opacity = 0;
-            if (name === 'Illinois') {
-              opacity = 1;
-            } else if (distance < 1200000) {
-              opacity = 1 - (distance / 1200000);
-            }
-
-            L.geoJSON(feature, {
-              style: {
-                color: 'black',
-                weight: 1,
-                opacity: opacity,
-                fillOpacity: 0
-              }
-            }).addTo(map);
-          });
-        });
-
-      return map;
-    }
-
-    const mapConfigs = [
-      {
-        center: [40.63834, -88.78116],
-        ranges: [
-          { meters: 88513, opacity: 0.15 },
-          { meters: 56327, opacity: 0.25 },
-          { meters: 49890, opacity: 0.35 }
-        ],
-        tooltipText: "107.7 & 92.1 The Bull",
-        website: "https://www.1077thebull.com/"
-      },
-      {
-        center: [40.4522, -88.9633],
-        ranges: [
-          { meters: 105 * 1609.34, opacity: 0.15 },  // ~65 miles
-          { meters: 84 * 1609.34, opacity: 0.25 },   // ~52 miles
-          { meters: 342 * 1609.34, opacity: 0.35 }   // ~213 miles
-        ],
-        tooltipText: "95.9 BobFM",
-        website: "https://www.959bobfm.com/"
-      },
-      {
-        center: [40.63834, -88.78116],
-        ranges: [],
-        tooltipText: null,
-        website: null
-      },
-      {
-        center: [40.63834, -88.78116],
-        ranges: [],
-        tooltipText: null,
-        website: null
-      }
-    ];
-
-    mapIDs.forEach((id, i) => {
-      setTimeout(() => {
-        const config = mapConfigs[i];
-        maps[i] = initMap(id, config.center, config.ranges, config.tooltipText, config.website);
-      }, i * 300);
+      maps.push(map);
     });
 
     function showMap(index) {
       document.querySelectorAll('.map-container').forEach((el, i) => {
         el.classList.toggle('active', i === index);
       });
-      document.querySelectorAll('.tab-button').forEach((btn, i) => {
+
+      document.querySelectorAll('#tabs button').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
       });
+
       setTimeout(() => {
-        if (maps[index]) maps[index].invalidateSize();
-      }, 300);
+        maps[index].invalidateSize();
+      }, 200);
     }
   </script>
 </body>
 </html>
+
 
 
 
