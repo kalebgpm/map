@@ -1,100 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Interactive Radius Map</title>
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-sA+4Xl3P2y74KQzGH5F2K+NuZMj6ptNXYW1jT2eT9nM="
-  crossorigin=""
-/>
-<style>
-  html, body, #map {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
-</style>
+  <meta charset="utf-8" />
+  <title>Radius Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2dPGd9vU7nlHkJLM1PPVP8pxF47j7Y8Rf4fPaxI="
+    crossorigin=""
+  />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-<div id="map"></div>
+  <div id="map"></div>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-oNfVYjWWcax3rLUJxUjF+a4k1qUJHO48Qnq6rWZgHyk="
-  crossorigin=""
-></script>
-<script>
-  // Center coords and radius (meters)
-  const center = [40.63834, -88.78116];
-  const radiusMeters = 162 * 1609.34; // 1 mile = 1609.34 meters
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-Df1wltM0T8lRkQHll4kEyO4ZQ7FHZafHAFj1bK5bCmc="
+    crossorigin=""
+  ></script>
 
-  // Create map with zoomControl: false to disable zoom buttons by default
-  const map = L.map('map', {
-    center: center,
-    zoom: 7,
-    zoomControl: false,
-    dragging: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    boxZoom: false,
-    keyboard: false,
-  });
+  <script>
+    const map = L.map('map', {
+      center: [40.63834, -88.78116],
+      zoom: 7,
+      scrollWheelZoom: false,
+      dragging: false
+    });
 
-  // Add OpenStreetMap tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-  }).addTo(map);
+    // Use a Google-like tile provider (CartoDB Positron is similar)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
 
-  // Add transparent orange circle with no border
-  L.circle(center, {
-    radius: radiusMeters,
-    color: null,
-    fillColor: 'orange',
-    fillOpacity: 0.3,
-    weight: 0, // no border
-  }).addTo(map);
+    // Add 162-mile radius (about 260,000 meters) circle
+    L.circle([40.63834, -88.78116], {
+      radius: 260000, // meters
+      fillColor: 'orange',
+      fillOpacity: 0.3,
+      stroke: false
+    }).addTo(map);
 
-  // Enable map interaction only when holding Alt or Ctrl
-  function setInteraction(enabled) {
-    if (enabled) {
-      map.dragging.enable();
-      map.scrollWheelZoom.enable();
-      map.doubleClickZoom.enable();
-      map.boxZoom.enable();
-      map.keyboard.enable();
-      if (!map.zoomControl) {
-        L.control.zoom().addTo(map);
-      }
-    } else {
-      map.dragging.disable();
-      map.scrollWheelZoom.disable();
-      map.doubleClickZoom.disable();
-      map.boxZoom.disable();
-      map.keyboard.disable();
-      if (map.zoomControl) {
-        map.zoomControl.remove();
-        map.zoomControl = null;
+    // ALT or CTRL to enable map interaction
+    function toggleInteraction(enable) {
+      if (enable) {
+        map.scrollWheelZoom.enable();
+        map.dragging.enable();
+      } else {
+        map.scrollWheelZoom.disable();
+        map.dragging.disable();
       }
     }
-  }
 
-  // Initial interaction off
-  setInteraction(false);
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey || e.ctrlKey) toggleInteraction(true);
+    });
 
-  // Listen for keydown/up events to toggle interaction
-  document.addEventListener('keydown', (e) => {
-    if (e.altKey || e.ctrlKey) {
-      setInteraction(true);
-    }
-  });
-  document.addEventListener('keyup', (e) => {
-    if (!e.altKey && !e.ctrlKey) {
-      setInteraction(false);
-    }
-  });
-</script>
+    document.addEventListener('keyup', () => toggleInteraction(false));
+  </script>
 </body>
 </html>
