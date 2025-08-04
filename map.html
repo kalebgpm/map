@@ -15,6 +15,14 @@
       margin: 0;
       padding: 0;
     }
+    .leaflet-tooltip {
+      font-weight: bold;
+      color: #333;
+      background-color: rgba(255, 255, 255, 0.85);
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -29,12 +37,11 @@
       attribution: '&copy; OpenStreetMap, &copy; CartoDB',
     }).addTo(map);
 
-    // Colors and Opacity
     const orange = '#FFA500';
 
-    // 55 miles (Fringe range) - slightly higher opacity than before
+    // 55 miles (Fringe range)
     L.circle([40.63834, -88.78116], {
-      radius: 88514, // in meters
+      radius: 88514,
       fillColor: orange,
       fillOpacity: 0.3,
       stroke: false
@@ -48,7 +55,7 @@
       stroke: false
     }).addTo(map);
 
-    // 31 miles (Core/distant range) - clickable
+    // 31 miles (Core range) - clickable and hover text
     const coreCircle = L.circle([40.63834, -88.78116], {
       radius: 49890,
       fillColor: orange,
@@ -56,7 +63,14 @@
       stroke: false
     }).addTo(map);
 
-    // Click to visit site
+    // Tooltip on hover
+    coreCircle.bindTooltip("107.7 & 92.1 The Bull", {
+      permanent: false,
+      direction: 'top',
+      opacity: 0.9
+    });
+
+    // Click to open website
     coreCircle.on('click', function () {
       window.open('https://www.1077thebull.com/', '_blank');
     });
