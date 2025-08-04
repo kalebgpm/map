@@ -2,77 +2,32 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Radius Map</title>
+  <title>Simple Map Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+e2dPGd9vU7nlHkJLM1PPVP8pxF47j7Y8Rf4fPaxI="
     crossorigin=""
   />
   <style>
-    html, body {
+    html, body, #map {
+      height: 100%;
       margin: 0;
       padding: 0;
-      height: 100%;
-    }
-    #map {
-      height: 100%;
-      width: 100%;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
-  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-Df1wltM0T8lRkQHll4kEyO4ZQ7FHZafHAFj1bK5bCmc="
     crossorigin=""
   ></script>
-
   <script>
-    const map = L.map('map', {
-      center: [40.63834, -88.78116],
-      zoom: 7,
-      scrollWheelZoom: false,
-      dragging: false
-    });
-
-    // Use a Google-like tile provider (CartoDB Positron is similar)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
+    const map = L.map('map').setView([40.63834, -88.78116], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
-
-    // Add 162-mile radius (about 260,000 meters) circle
-    L.circle([40.63834, -88.78116], {
-      radius: 260000, // meters
-      fillColor: 'orange',
-      fillOpacity: 0.3,
-      stroke: false
-    }).addTo(map);
-
-    // ALT or CTRL to enable map interaction
-    function toggleInteraction(enable) {
-      if (enable) {
-        map.scrollWheelZoom.enable();
-        map.dragging.enable();
-      } else {
-        map.scrollWheelZoom.disable();
-        map.dragging.disable();
-      }
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.altKey || e.ctrlKey) toggleInteraction(true);
-    });
-
-    document.addEventListener('keyup', () => toggleInteraction(false));
   </script>
 </body>
 </html>
