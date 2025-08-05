@@ -158,6 +158,7 @@
       }).addTo(map);
 
       cfg.ranges.forEach((r, j) => {
+        // Small circles with grey fill to match your request (or use cfg.color?)
         const circle = L.circle(cfg.center, {
           radius: r.m,
           fillColor: cfg.color,
@@ -165,8 +166,12 @@
           stroke: false
         }).addTo(map);
 
-        if (j === 0 && cfg.tooltip && cfg.url) {
-          circle.bindTooltip(cfg.tooltip, { direction: 'top', opacity: 0.9 });
+        // Make every circle show tooltip and clickable on hover, not just first
+        if (cfg.tooltip && cfg.url) {
+          // Bind tooltip with permanent label so it's always visible
+          circle.bindTooltip(`${cfg.tooltip} - Range ${j + 1}`, { permanent: true, direction: 'center', className: 'circle-label' });
+
+          // Make clickable: open url on click
           circle.on('click', () => window.open(cfg.url, '_blank'));
         }
       });
@@ -218,9 +223,10 @@
 
       mapConfigs.forEach(cfg => {
         let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+        // Change fillColor to grey (#888888) for all circles here
         L.circle(cfg.center, {
           radius: largestRange,
-          fillColor: cfg.color,
+          fillColor: '#888888',
           fillOpacity: 0.35,
           stroke: false
         }).addTo(allStationsMap);
