@@ -167,20 +167,25 @@
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      cfg.ranges.forEach((r) => {
-        const circle = L.circle(cfg.center, {
-          radius: r.m,
-          fillColor: cfg.color,
-          fillOpacity: r.o,
-          stroke: false
-        }).addTo(map);
+     cfg.ranges.forEach((r, j) => {
+  const circle = L.circle(cfg.center, {
+    radius: r.m,
+    fillColor: cfg.color,
+    fillOpacity: r.o,
+    stroke: false,
+    interactive: true,
+  }).addTo(map);
 
-        if (cfg.tooltip && cfg.url) {
-          // Tooltip with just station name, permanent so always visible
-          circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
-          circle.on('click', () => window.open(cfg.url, '_blank'));
-        }
-      });
+  // Get largest radius for current cfg
+  const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
+
+  // Only bind tooltip and click if NOT the largest circle
+  if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
+    circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
+    circle.on('click', () => window.open(cfg.url, '_blank'));
+  }
+});
+
 
       fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
         .then(r => r.json()).then(data => {
