@@ -2,86 +2,92 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Radio Blurb Generator</title>
+  <title>Smart Radio Blurb Generator (Free)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #121212;
+      background: #111;
       color: #fff;
-      padding: 30px;
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
+      padding: 30px;
     }
-    input[type="text"] {
+    input, textarea, button {
       width: 100%;
       padding: 12px;
-      font-size: 16px;
-      margin-bottom: 15px;
+      margin: 10px 0;
       border: none;
       border-radius: 6px;
+      font-size: 16px;
     }
     button {
-      padding: 10px 20px;
       background-color: #f39c12;
       color: #000;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
       cursor: pointer;
     }
-    .output {
-      margin-top: 30px;
-      line-height: 1.6;
-    }
     .output p {
-      margin-bottom: 15px;
+      margin: 15px 0;
     }
   </style>
 </head>
 <body>
 
-  <h2>🎙️ Radio Blurb Generator</h2>
-  <p>Enter any topic and get a 3-part on-air script!</p>
+  <h2>🎙️ Smart Radio Blurb Generator</h2>
+  <p>Step 1: Type a topic, click to Google it, copy 1-2 sentences from results, and paste below.</p>
 
-  <input type="text" id="topicInput" placeholder="Enter a topic (e.g. Pumpkin Spice Latte)" />
+  <input type="text" id="topicInput" placeholder="Enter topic (e.g., Back to School Traffic)">
+  <button onclick="searchGoogle()">Search Google</button>
+
+  <p>Step 2: Paste key facts or article lines from Google here:</p>
+  <textarea id="infoInput" rows="4" placeholder="Paste info here..."></textarea>
+
   <button onclick="generateBlurb()">Generate Blurb</button>
 
   <div class="output" id="outputArea"></div>
 
   <script>
-    function generateBlurb() {
+    function searchGoogle() {
       const topic = document.getElementById('topicInput').value.trim();
       if (!topic) return;
+      const query = encodeURIComponent(topic);
+      window.open(`https://www.google.com/search?q=${query}`, '_blank');
+    }
+
+    function generateBlurb() {
+      const topic = document.getElementById('topicInput').value.trim();
+      const info = document.getElementById('infoInput').value.trim();
+
+      if (!topic || !info) return alert("Please enter a topic and paste some info.");
 
       const hooks = [
-        `Forget what you think you know about ${topic.toLowerCase()}—this one’s different.`,
-        `${topic} isn't just a thing—it's a vibe.`,
-        `Ever seen ${topic.toLowerCase()} this bold? Now you have.`,
-        `Some call it ${topic.toLowerCase()}, we call it an experience.`,
+        `Forget everything you thought you knew about ${topic.toLowerCase()}...`,
+        `${topic} isn't just news—it's a whole vibe right now.`,
         `Brace yourself—${topic.toLowerCase()} just got real.`,
+        `Big story today: ${topic}!`,
+        `Here’s what everyone’s talking about: ${topic}.`
       ];
 
-      const reasons = [
-        `Because sometimes ${topic.toLowerCase()} is exactly what you need to reset your day.`,
-        `Turns out, ${topic.toLowerCase()} might just be the highlight of your week.`,
-        `It matters—because ${topic.toLowerCase()} is more than just a checklist item.`,
-        `${topic} hits different when it shows up just when you need it.`,
-        `Let’s be honest—${topic.toLowerCase()} just makes life better.`,
+      const importance = [
+        `Why it matters? ${info}`,
+        `Here's the deal: ${info}`,
+        `This hits hard because ${info}`,
+        `It’s important because ${info}`,
+        `${info} — that's why it's everywhere.`
       ];
 
       const quips = [
-        `Speaking of good choices—here comes your next track!`,
-        `And now, a song with more flavor than ${topic.toLowerCase()}!`,
-        `If this track were any smoother, it’d be ${topic.toLowerCase()}.`,
-        `Let’s keep that energy going with this next banger.`,
-        `Time to vibe—press play on this beauty.`,
+        `And now, something smoother than the headlines—your next song.`,
+        `If only the news had a beat like this one. Let’s go.`,
+        `This track’s got more energy than the 6 o'clock news.`,
+        `Next up: less stress, more rhythm.`,
+        `Enough real-world drama—let’s vibe.`
       ];
 
       const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
 
       document.getElementById('outputArea').innerHTML = `
         <p><strong>🎯 Hook:</strong> ${getRandom(hooks)}</p>
-        <p><strong>💡 Why it matters:</strong> ${getRandom(reasons)}</p>
+        <p><strong>💡 Why it matters:</strong> ${getRandom(importance)}</p>
         <p><strong>😂 Quip:</strong> ${getRandom(quips)}</p>
       `;
     }
