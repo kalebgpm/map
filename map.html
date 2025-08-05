@@ -79,6 +79,16 @@
       height: 100%;
       width: 100%;
     }
+
+    /* Optional styling for permanent labels */
+    .circle-label {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #333;
+      border: 1px solid #999;
+    }
   </style>
 </head>
 <body>
@@ -157,8 +167,7 @@
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      cfg.ranges.forEach((r, j) => {
-        // Small circles with grey fill to match your request (or use cfg.color?)
+      cfg.ranges.forEach((r) => {
         const circle = L.circle(cfg.center, {
           radius: r.m,
           fillColor: cfg.color,
@@ -166,12 +175,9 @@
           stroke: false
         }).addTo(map);
 
-        // Make every circle show tooltip and clickable on hover, not just first
         if (cfg.tooltip && cfg.url) {
-          // Bind tooltip with permanent label so it's always visible
-          circle.bindTooltip(`${cfg.tooltip} - Range ${j + 1}`, { permanent: true, direction: 'center', className: 'circle-label' });
-
-          // Make clickable: open url on click
+          // Tooltip with just station name, permanent so always visible
+          circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
           circle.on('click', () => window.open(cfg.url, '_blank'));
         }
       });
@@ -223,10 +229,9 @@
 
       mapConfigs.forEach(cfg => {
         let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-        // Change fillColor to grey (#888888) for all circles here
         L.circle(cfg.center, {
           radius: largestRange,
-          fillColor: '#888888',
+          fillColor: '#888888',  // Grey tone for all stations
           fillOpacity: 0.35,
           stroke: false
         }).addTo(allStationsMap);
@@ -266,3 +271,4 @@
   </script>
 </body>
 </html>
+
