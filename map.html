@@ -80,14 +80,45 @@
       width: 100%;
     }
 
-    /* Optional styling for permanent labels */
-    .circle-label {
-      background-color: rgba(255, 255, 255, 0.8);
+    /* Label style for clickable divIcon markers */
+    .clickable-label span {
+      background-color: rgba(255,255,255,0.8);
       padding: 2px 6px;
       border-radius: 4px;
       font-weight: bold;
       color: #333;
       border: 1px solid #999;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    /* Popup overlay styles */
+    #zoom-popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      user-select: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #zoom-popup-overlay.visible {
+      visibility: visible;
+      opacity: 1;
     }
   </style>
 </head>
@@ -105,6 +136,11 @@
   <div id="map2" class="map-container"></div>
   <div id="map3" class="map-container"></div>
   <div id="map4" class="map-container active"></div>
+
+  <!-- Zoom popup overlay -->
+  <div id="zoom-popup-overlay">
+    Press <b>Alt</b> or <b>Ctrl</b> + Scroll to zoom the map.
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -142,7 +178,7 @@
           { m: 33 * MILE_TO_METERS, o: 0.25 },
           { m: 26 * MILE_TO_METERS, o: 0.35 }
         ],
-        tooltip: "Cities 92.9",
+        tooltip: "92.9 Cities",
         url: "https://www.cities929.com/",
         color: "#007BC3"
       },
@@ -153,7 +189,7 @@
           { m: 33 * MILE_TO_METERS, o: 0.25 },
           { m: 32 * MILE_TO_METERS, o: 0.35 }
         ],
-        tooltip: "Magic 99.5",
+        tooltip: "99.5 Magic",
         url: "https://www.magic995fm.com/",
         color: "#913750"
       }
@@ -161,31 +197,79 @@
 
     const maps = [];
 
+    // Function to setup zoom control restriction & popup
+    function setupZoomControlRestriction(map) {
+      const popup = document.getElementById('zoom-popup-overlay');
+      let popupTimeout = null;
+
+      // Disable default scroll wheel zoom initially
+      map.scrollWheelZoom.disable();
+
+      // Listen for wheel event on map container
+      map.getContainer().addEventListener('wheel', (e) => {
+        if (e.altKey || e.ctrlKey) {
+          // Enable zoom if modifier key pressed
+          if (!map.scrollWheelZoom.enabled()) {
+            map.scrollWheelZoom.enable();
+          }
+          popup.classList.remove('visible');
+          if (popupTimeout) {
+            clearTimeout(popupTimeout);
+            popupTimeout = null;
+          }
+          return; // allow zoom normally
+        }
+
+        // No modifier key - prevent zoom and show popup
+        e.preventDefault();
+
+        if (!popup.classList.contains('visible')) {
+          popup.classList.add('visible');
+
+          // Hide popup after 3 seconds if no further scroll
+          popupTimeout = setTimeout(() => {
+            popup.classList.remove('visible');
+            popupTimeout = null;
+          }, 3000);
+        }
+
+        // Ensure zoom is disabled when no modifier keys
+        if (map.scrollWheelZoom.enabled()) {
+          map.scrollWheelZoom.disable();
+        }
+      }, { passive: false });
+    }
+
     mapConfigs.forEach((cfg, i) => {
       const map = L.map(`map${i}`).setView(cfg.center, 7);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-     cfg.ranges.forEach((r, j) => {
-  const circle = L.circle(cfg.center, {
-    radius: r.m,
-    fillColor: cfg.color,
-    fillOpacity: r.o,
-    stroke: false,
-    interactive: true,
-  }).addTo(map);
+      // Add circles and clickable labels (divIcon markers)
+      cfg.ranges.forEach(() => {
+        // Draw circle (no click or tooltip on circle)
+        const circle = L.circle(cfg.center, {
+          radius: cfg.ranges[0].m, // largest radius for fill
+          fillColor: cfg.color,
+          fillOpacity: 0.35,
+          stroke: false
+        }).addTo(map);
+      });
 
-  // Get largest radius for current cfg
-  const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
+      // Add clickable label marker at center with station name
+      if (cfg.tooltip && cfg.url) {
+        const labelMarker = L.marker(cfg.center, {
+          icon: L.divIcon({
+            className: 'clickable-label',
+            html: `<span>${cfg.tooltip}</span>`,
+            iconSize: null
+          }),
+          interactive: true
+        }).addTo(map);
 
-  // Only bind tooltip and click if NOT the largest circle
-  if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
-    circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
-    circle.on('click', () => window.open(cfg.url, '_blank'));
-  }
-});
-
+        labelMarker.on('click', () => window.open(cfg.url, '_blank'));
+      }
 
       fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
         .then(r => r.json()).then(data => {
@@ -209,6 +293,7 @@
         });
 
       maps.push(map);
+      setupZoomControlRestriction(map);
     });
 
     function createAllStationsMap() {
@@ -262,6 +347,7 @@
       }, 300);
 
       maps.push(allStationsMap);
+      setupZoomControlRestriction(allStationsMap);
     }
 
     createAllStationsMap();
@@ -276,4 +362,3 @@
   </script>
 </body>
 </html>
-
