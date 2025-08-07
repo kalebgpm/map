@@ -274,27 +274,29 @@
 
     showMap(4);
 
-    // Your requested Alt+Scroll zoom implementation:
+    // --- Improved Alt+Scroll Zoom Implementation ---
+
+    let altKeyDown = false; // global Alt key state
+
+    // Track Alt key globally
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Alt') {
+        altKeyDown = true;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Alt') {
+        altKeyDown = false;
+      }
+    });
+
     maps.forEach(map => {
       map.scrollWheelZoom.disable();
 
       const container = map.getContainer();
 
       let altHeld = false;
-
-      container.addEventListener('mouseenter', () => {
-        // Watch for Alt key changes only when hovering over map
-        window.addEventListener('keydown', handleAltDown);
-        window.addEventListener('keyup', handleAltUp);
-      });
-
-      container.addEventListener('mouseleave', () => {
-        // Clean up when leaving the map area
-        window.removeEventListener('keydown', handleAltDown);
-        window.removeEventListener('keyup', handleAltUp);
-        map.scrollWheelZoom.disable();
-        altHeld = false;
-      });
 
       function handleAltDown(e) {
         if (e.key === 'Alt' && !altHeld) {
@@ -310,11 +312,29 @@
         }
       }
 
+      container.addEventListener('mouseenter', () => {
+        // Add key listeners when hovering
+        window.addEventListener('keydown', handleAltDown);
+        window.addEventListener('keyup', handleAltUp);
+
+        // If Alt is already pressed when mouse enters, enable zoom immediately
+        if (altKeyDown) {
+          altHeld = true;
+          map.scrollWheelZoom.enable();
+        }
+      });
+
+      container.addEventListener('mouseleave', () => {
+        window.removeEventListener('keydown', handleAltDown);
+        window.removeEventListener('keyup', handleAltUp);
+        map.scrollWheelZoom.disable();
+        altHeld = false;
+      });
+
       // Prevent page scroll when Alt + wheel on map
       container.addEventListener('wheel', e => {
         if (!altHeld) return;
         e.preventDefault(); // block page scroll
-        // let leaflet handle it while Alt is held
       }, { passive: false });
     });
   </script>
