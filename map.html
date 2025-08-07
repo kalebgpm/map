@@ -274,34 +274,49 @@
 
     showMap(4);
 
-    // Add Alt+Scroll zoom on hover only
+    // Your requested Alt+Scroll zoom implementation:
     maps.forEach(map => {
       map.scrollWheelZoom.disable();
 
       const container = map.getContainer();
-      container.addEventListener('wheel', e => {
-        if (e.altKey) {
-          e.preventDefault();
+
+      let altHeld = false;
+
+      container.addEventListener('mouseenter', () => {
+        // Watch for Alt key changes only when hovering over map
+        window.addEventListener('keydown', handleAltDown);
+        window.addEventListener('keyup', handleAltUp);
+      });
+
+      container.addEventListener('mouseleave', () => {
+        // Clean up when leaving the map area
+        window.removeEventListener('keydown', handleAltDown);
+        window.removeEventListener('keyup', handleAltUp);
+        map.scrollWheelZoom.disable();
+        altHeld = false;
+      });
+
+      function handleAltDown(e) {
+        if (e.key === 'Alt' && !altHeld) {
+          altHeld = true;
           map.scrollWheelZoom.enable();
-          map._onWheelScroll(e);
+        }
+      }
+
+      function handleAltUp(e) {
+        if (e.key === 'Alt') {
+          altHeld = false;
           map.scrollWheelZoom.disable();
         }
+      }
+
+      // Prevent page scroll when Alt + wheel on map
+      container.addEventListener('wheel', e => {
+        if (!altHeld) return;
+        e.preventDefault(); // block page scroll
+        // let leaflet handle it while Alt is held
       }, { passive: false });
-    });
-
-    // Optional: Disable page scrolling when Alt is held
-    window.addEventListener('keydown', e => {
-      if (e.key === 'Alt') {
-        document.body.style.overflowY = 'hidden';
-      }
-    });
-
-    window.addEventListener('keyup', e => {
-      if (e.key === 'Alt') {
-        document.body.style.overflowY = '';
-      }
     });
   </script>
 </body>
 </html>
-
