@@ -80,7 +80,6 @@
       width: 100%;
     }
 
-    /* Optional styling for permanent labels */
     .circle-label {
       background-color: rgba(255, 255, 255, 0.8);
       padding: 2px 6px;
@@ -162,30 +161,29 @@
     const maps = [];
 
     mapConfigs.forEach((cfg, i) => {
-      const map = L.map(`map${i}`).setView(cfg.center, 7);
+      const map = L.map(`map${i}`, {
+        scrollWheelZoom: false
+      }).setView(cfg.center, 7);
+
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-     cfg.ranges.forEach((r, j) => {
-  const circle = L.circle(cfg.center, {
-    radius: r.m,
-    fillColor: cfg.color,
-    fillOpacity: r.o,
-    stroke: false,
-    interactive: true,
-  }).addTo(map);
+      cfg.ranges.forEach((r) => {
+        const circle = L.circle(cfg.center, {
+          radius: r.m,
+          fillColor: cfg.color,
+          fillOpacity: r.o,
+          stroke: false,
+          interactive: true,
+        }).addTo(map);
 
-  // Get largest radius for current cfg
-  const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
-
-  // Only bind tooltip and click if NOT the largest circle
-  if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
-    circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
-    circle.on('click', () => window.open(cfg.url, '_blank'));
-  }
-});
-
+        const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
+        if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
+          circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
+          circle.on('click', () => window.open(cfg.url, '_blank'));
+        }
+      });
 
       fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
         .then(r => r.json()).then(data => {
@@ -212,7 +210,9 @@
     });
 
     function createAllStationsMap() {
-      const allStationsMap = L.map('map4');
+      const allStationsMap = L.map('map4', {
+        scrollWheelZoom: false
+      });
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap & CartoDB'
@@ -236,7 +236,7 @@
         let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
         L.circle(cfg.center, {
           radius: largestRange,
-          fillColor: '#888888',  // Grey tone for all stations
+          fillColor: '#888888',
           fillOpacity: 0.35,
           stroke: false
         }).addTo(allStationsMap);
@@ -273,6 +273,34 @@
     }
 
     showMap(4);
+
+    // Add Alt+Scroll zoom on hover only
+    maps.forEach(map => {
+      map.scrollWheelZoom.disable();
+
+      const container = map.getContainer();
+      container.addEventListener('wheel', e => {
+        if (e.altKey) {
+          e.preventDefault();
+          map.scrollWheelZoom.enable();
+          map._onWheelScroll(e);
+          map.scrollWheelZoom.disable();
+        }
+      }, { passive: false });
+    });
+
+    // Optional: Disable page scrolling when Alt is held
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Alt') {
+        document.body.style.overflowY = 'hidden';
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      if (e.key === 'Alt') {
+        document.body.style.overflowY = '';
+      }
+    });
   </script>
 </body>
 </html>
