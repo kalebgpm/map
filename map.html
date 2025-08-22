@@ -232,4 +232,111 @@
           });
         });
 
-      mapConfigs.forEa
+      mapConfigs.forEach(cfg => {
+        let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+        L.circle(cfg.center, {
+          radius: largestRange,
+          fillColor: '#888888',
+          fillOpacity: 0.35,
+          stroke: false
+        }).addTo(allStationsMap);
+      });
+
+      const latLngs = [];
+      mapConfigs.forEach(cfg => {
+        let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+        const center = L.latLng(cfg.center[0], cfg.center[1]);
+        latLngs.push(center);
+
+        const radiusDegrees = largestRange / 111000;
+        latLngs.push(L.latLng(center.lat + radiusDegrees, center.lng));
+        latLngs.push(L.latLng(center.lat - radiusDegrees, center.lng));
+        latLngs.push(L.latLng(center.lat, center.lng + radiusDegrees));
+        latLngs.push(L.latLng(center.lat, center.lng - radiusDegrees));
+      });
+
+      const bounds = L.latLngBounds(latLngs);
+      setTimeout(() => {
+        allStationsMap.invalidateSize();
+        allStationsMap.fitBounds(bounds, { padding: [50, 50] });
+      }, 300);
+
+      maps.push(allStationsMap);
+    }
+
+    createAllStationsMap();
+
+    function showMap(idx) {
+      document.querySelectorAll('.map-container').forEach((el, i) => el.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-button').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+      setTimeout(() => maps[idx].invalidateSize(), 200);
+    }
+
+    showMap(4);
+
+    // --- Improved Alt+Scroll Zoom Implementation ---
+
+    let altKeyDown = false; // global Alt key state
+
+    // Track Alt key globally
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Alt') {
+        altKeyDown = true;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Alt') {
+        altKeyDown = false;
+      }
+    });
+
+    maps.forEach(map => {
+      map.scrollWheelZoom.disable();
+
+      const container = map.getContainer();
+
+      let altHeld = false;
+
+      function handleAltDown(e) {
+        if (e.key === 'Alt' && !altHeld) {
+          altHeld = true;
+          map.scrollWheelZoom.enable();
+        }
+      }
+
+      function handleAltUp(e) {
+        if (e.key === 'Alt') {
+          altHeld = false;
+          map.scrollWheelZoom.disable();
+        }
+      }
+
+      container.addEventListener('mouseenter', () => {
+        // Add key listeners when hovering
+        window.addEventListener('keydown', handleAltDown);
+        window.addEventListener('keyup', handleAltUp);
+
+        // If Alt is already pressed when mouse enters, enable zoom immediately
+        if (altKeyDown) {
+          altHeld = true;
+          map.scrollWheelZoom.enable();
+        }
+      });
+
+      container.addEventListener('mouseleave', () => {
+        window.removeEventListener('keydown', handleAltDown);
+        window.removeEventListener('keyup', handleAltUp);
+        map.scrollWheelZoom.disable();
+        altHeld = false;
+      });
+
+      // Prevent page scroll when Alt + wheel on map
+      container.addEventListener('wheel', e => {
+        if (!altHeld) return;
+        e.preventDefault(); // block page scroll
+      }, { passive: false });
+    });
+  </script>
+</body>
+</html>
