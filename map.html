@@ -210,39 +210,67 @@
     });
 
     function createAllStationsMap() {
-      const allStationsMap = L.map('map4', {
-        scrollWheelZoom: false
-      });
+  const allStationsMap = L.map('map4', {
+    scrollWheelZoom: false
+  });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap & CartoDB'
-      }).addTo(allStationsMap);
-
-      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(r => r.json()).then(data => {
-          data.features.forEach(feat => {
-            L.geoJSON(feat, {
-              style: {
-                color: 'black',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0
-              }
-            }).addTo(allStationsMap);
-          });
-        });
-
-      mapConfigs.forEach(cfg => {
-  let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-
-  // CHANGE HERE: use cfg.color instead of hard-coded grey
-  L.circle(cfg.center, {
-    radius: largestRange,
-    fillColor: cfg.color,   // was '#888888'
-    fillOpacity: 0.35,
-    stroke: false
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap & CartoDB'
   }).addTo(allStationsMap);
-});
+
+  fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+    .then(r => r.json()).then(data => {
+      data.features.forEach(feat => {
+        L.geoJSON(feat, {
+          style: {
+            color: 'black',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0
+          }
+        }).addTo(allStationsMap);
+      });
+    });
+
+  // 🔽 NEW: sort stations by largest circle radius (descending → draw largest first)
+  const sortedConfigs = [...mapConfigs].sort((a, b) => {
+    const aMax = Math.max(...a.ranges.map(r => r.m));
+    const bMax = Math.max(...b.ranges.map(r => r.m));
+    return bMax - aMax; // bigger first
+  });
+
+  sortedConfigs.forEach(cfg => {
+    let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+
+    L.circle(cfg.center, {
+      radius: largestRange,
+      fillColor: cfg.color,
+      fillOpacity: 0.35,
+      stroke: false
+    }).addTo(allStationsMap);
+  });
+
+  const latLngs = [];
+  mapConfigs.forEach(cfg => {
+    let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+    const center = L.latLng(cfg.center[0], cfg.center[1]);
+    latLngs.push(center);
+
+    const radiusDegrees = largestRange / 111000;
+    latLngs.push(L.latLng(center.lat + radiusDegrees, center.lng));
+    latLngs.push(L.latLng(center.lat - radiusDegrees, center.lng));
+    latLngs.push(L.latLng(center.lat, center.lng + radiusDegrees));
+    latLngs.push(L.latLng(center.lat, center.lng - radiusDegrees));
+  });
+
+  const bounds = L.latLngBounds(latLngs);
+  setTimeout(() => {
+    allStationsMap.invalidateSize();
+    allStationsMap.fitBounds(bounds, { padding: [50, 50] });
+  }, 300);
+
+  maps.push(allStationsMap);
+}
 
 
       const latLngs = [];
