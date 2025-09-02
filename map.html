@@ -248,14 +248,15 @@
           }).addTo(allStationsMap);
         });
 
-      // ✅ Label pinned to Bloomington, IL
-      L.marker([40.4842, -88.9937])
-        .addTo(allStationsMap)
-        .bindTooltip("All Stations", {
-          permanent: true,
-          direction: "top",
-          className: "circle-label"
-        });
+      // ✅ Label pinned to Bloomington, IL (no pin, just text)
+      L.tooltip({
+        permanent: true,
+        direction: "top",
+        className: "circle-label"
+      })
+        .setContent("All Stations")
+        .setLatLng([40.4842, -88.9937])
+        .addTo(allStationsMap);
 
       const latLngs = [];
       mapConfigs.forEach(cfg => {
