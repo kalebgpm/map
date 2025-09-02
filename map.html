@@ -68,7 +68,7 @@
     .map-container {
       display: none;
       flex: 1;
-      position: relative; /* needed for label positioning */
+      position: relative;
     }
 
     .map-container.active {
@@ -89,21 +89,6 @@
       font-weight: bold;
       color: #333;
       border: 1px solid #999;
-    }
-
-    /* --- NEW: label for All Stations map --- */
-    .allstations-label {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-weight: bold;
-      color: #333;
-      border: 1px solid #999;
-      z-index: 1000;
-      pointer-events: none;
     }
 
     /* --- Grey overlay for Alt+Scroll message --- */
@@ -136,9 +121,7 @@
   <div id="map1" class="map-container"></div>
   <div id="map2" class="map-container"></div>
   <div id="map3" class="map-container"></div>
-  <div id="map4" class="map-container active">
-    <div class="allstations-label">All Stations</div>
-  </div>
+  <div id="map4" class="map-container active"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -204,7 +187,6 @@
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      // draw largest → smallest so small ones are on top
       [...cfg.ranges]
         .sort((a, b) => b.m - a.m)
         .forEach((r) => {
@@ -221,27 +203,6 @@
             circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
             circle.on('click', () => window.open(cfg.url, '_blank'));
           }
-        });
-
-      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(r => r.json()).then(data => {
-          data.features.forEach(feat => {
-            const n = feat.properties.name;
-            const dist = turf.distance(
-              turf.point(turf.center(feat).geometry.coordinates),
-              turf.point([cfg.center[1], cfg.center[0]]),
-              { units: 'meters' }
-            );
-            const opacity = n === 'Illinois' ? 1 : (dist < 1200000 ? 1 - (dist / 1200000) : 0);
-            L.geoJSON(feat, {
-              style: {
-                color: 'black',
-                weight: 1,
-                opacity: opacity,
-                fillOpacity: 0
-              }
-            }).addTo(map);
-          });
         });
 
       maps.push(map);
@@ -270,7 +231,6 @@
           });
         });
 
-      // draw largest circle for each station (no labels here)
       [...mapConfigs]
         .sort((a, b) => {
           const aMax = Math.max(...a.ranges.map(r => r.m));
@@ -286,6 +246,15 @@
             fillOpacity: 0.35,
             stroke: false
           }).addTo(allStationsMap);
+        });
+
+      // ✅ Label pinned to Bloomington, IL
+      L.marker([40.4842, -88.9937])
+        .addTo(allStationsMap)
+        .bindTooltip("All Stations", {
+          permanent: true,
+          direction: "top",
+          className: "circle-label"
         });
 
       const latLngs = [];
@@ -320,7 +289,7 @@
 
     showMap(4);
 
-    // --- Improved Alt+Scroll Zoom Implementation + GREY OVERLAY ---
+    // --- Improved Alt+Scroll Zoom ---
     let altKeyDown = false;
 
     window.addEventListener('keydown', (e) => {
