@@ -233,14 +233,17 @@
         });
 
       mapConfigs.forEach(cfg => {
-        let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-        L.circle(cfg.center, {
-          radius: largestRange,
-          fillColor: '#888888',
-          fillOpacity: 0.35,
-          stroke: false
-        }).addTo(allStationsMap);
-      });
+  let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+
+  // CHANGE HERE: use cfg.color instead of hard-coded grey
+  L.circle(cfg.center, {
+    radius: largestRange,
+    fillColor: cfg.color,   // was '#888888'
+    fillOpacity: 0.35,
+    stroke: false
+  }).addTo(allStationsMap);
+});
+
 
       const latLngs = [];
       mapConfigs.forEach(cfg => {
