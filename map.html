@@ -169,21 +169,24 @@
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      cfg.ranges.forEach((r) => {
-        const circle = L.circle(cfg.center, {
-          radius: r.m,
-          fillColor: cfg.color,
-          fillOpacity: r.o,
-          stroke: false,
-          interactive: true,
-        }).addTo(map);
+      // draw largest → smallest so small ones are on top
+      [...cfg.ranges]
+        .sort((a, b) => b.m - a.m)
+        .forEach((r) => {
+          const circle = L.circle(cfg.center, {
+            radius: r.m,
+            fillColor: cfg.color,
+            fillOpacity: r.o,
+            stroke: false,
+            interactive: true,
+          }).addTo(map);
 
-        const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
-        if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
-          circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
-          circle.on('click', () => window.open(cfg.url, '_blank'));
-        }
-      });
+          const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
+          if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
+            circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
+            circle.on('click', () => window.open(cfg.url, '_blank'));
+          }
+        });
 
       fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
         .then(r => r.json()).then(data => {
@@ -232,46 +235,22 @@
           });
         });
 
-     // sort so biggest circles are drawn first, smaller ones on top
-[...mapConfigs]
-  .sort((a, b) => {
-    const aMax = Math.max(...a.ranges.map(r => r.m));
-    const bMax = Math.max(...b.ranges.map(r => r.m));
-    return bMax - aMax; // larger first
-  })
-  .forEach(cfg => {
-    let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-    L.circle(cfg.center, {
-      radius: largestRange,
-      fillColor: cfg.color,
-      fillOpacity: 0.35,
-      stroke: false
-    }).addTo(allStationsMap);
-  });
-
-
-      const latLngs = [];
-      mapConfigs.forEach(cfg => {
-        let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-        const center = L.latLng(cfg.center[0], cfg.center[1]);
-        latLngs.push(center);
-
-        const radiusDegrees = largestRange / 111000;
-        latLngs.push(L.latLng(center.lat + radiusDegrees, center.lng));
-        latLngs.push(L.latLng(center.lat - radiusDegrees, center.lng));
-        latLngs.push(L.latLng(center.lat, center.lng + radiusDegrees));
-        latLngs.push(L.latLng(center.lat, center.lng - radiusDegrees));
-      });
-
-      const bounds = L.latLngBounds(latLngs);
-      setTimeout(() => {
-        allStationsMap.invalidateSize();
-        allStationsMap.fitBounds(bounds, { padding: [50, 50] });
-      }, 300);
-
-      maps.push(allStationsMap);
-    }
-
+      // draw largest → smallest so small ones are on top
+      [...mapConfigs]
+        .sort((a, b) => {
+          const aMax = Math.max(...a.ranges.map(r => r.m));
+          const bMax = Math.max(...b.ranges.map(r => r.m));
+          return bMax - aMax;
+        })
+        .forEach(cfg => {
+          let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+          L.circle(cfg.center, {
+            radius: largestRange,
+            fillColor: cfg.color,
+            fillOpacity: 0.35,
+            stroke: false
+          }).addTo(allStationsMap);
+        });
 
       const latLngs = [];
       mapConfigs.forEach(cfg => {
@@ -306,10 +285,8 @@
     showMap(4);
 
     // --- Improved Alt+Scroll Zoom Implementation ---
-
     let altKeyDown = false; // global Alt key state
 
-    // Track Alt key globally
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Alt') {
         altKeyDown = true;
@@ -344,11 +321,9 @@
       }
 
       container.addEventListener('mouseenter', () => {
-        // Add key listeners when hovering
         window.addEventListener('keydown', handleAltDown);
         window.addEventListener('keyup', handleAltUp);
 
-        // If Alt is already pressed when mouse enters, enable zoom immediately
         if (altKeyDown) {
           altHeld = true;
           map.scrollWheelZoom.enable();
@@ -362,10 +337,9 @@
         altHeld = false;
       });
 
-      // Prevent page scroll when Alt + wheel on map
       container.addEventListener('wheel', e => {
         if (!altHeld) return;
-        e.preventDefault(); // block page scroll
+        e.preventDefault();
       }, { passive: false });
     });
   </script>
