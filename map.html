@@ -252,7 +252,7 @@
           });
         });
 
-      // draw largest → smallest so small ones are on top
+      // draw largest circle for each station and add one label
       [...mapConfigs]
         .sort((a, b) => {
           const aMax = Math.max(...a.ranges.map(r => r.m));
@@ -261,12 +261,23 @@
         })
         .forEach(cfg => {
           let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-          L.circle(cfg.center, {
+
+          const circle = L.circle(cfg.center, {
             radius: largestRange,
             fillColor: cfg.color,
             fillOpacity: 0.35,
             stroke: false
           }).addTo(allStationsMap);
+
+          // add one label + click
+          if (cfg.tooltip && cfg.url) {
+            circle.bindTooltip(cfg.tooltip, {
+              permanent: true,
+              direction: 'center',
+              className: 'circle-label'
+            });
+            circle.on('click', () => window.open(cfg.url, '_blank'));
+          }
         });
 
       const latLngs = [];
