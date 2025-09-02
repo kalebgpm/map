@@ -178,6 +178,22 @@
         attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(allStationsMap);
 
+      // restore state outlines
+      fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+        .then(r => r.json()).then(data => {
+          data.features.forEach(feat => {
+            L.geoJSON(feat, {
+              style: {
+                color: 'black',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0
+              }
+            }).addTo(allStationsMap);
+          });
+        });
+
+      // draw all stations coverage
       [...mapConfigs].forEach(cfg => {
         const largestRange = Math.max(...cfg.ranges.map(r => r.m));
         L.circle(cfg.center, {
@@ -188,13 +204,16 @@
         }).addTo(allStationsMap);
       });
 
-      // Add "All Stations" label in center of Illinois
+      // add "All Stations" label (no pin)
       const illinoisCenter = [40.0, -89.0];
-      L.marker(illinoisCenter, {
-        interactive: false
-      }).addTo(allStationsMap)
-        .bindTooltip("All Stations", { permanent: true, direction: 'center', className: 'circle-label' })
-        .openTooltip();
+      L.tooltip({
+        permanent: true,
+        direction: 'center',
+        className: 'circle-label'
+      })
+        .setLatLng(illinoisCenter)
+        .setContent("All Stations")
+        .addTo(allStationsMap);
 
       allStationsMap.setView(illinoisCenter, 7);
 
@@ -216,7 +235,7 @@
     window.addEventListener('keydown', e => { if (e.key === 'Alt') altKeyDown = true; });
     window.addEventListener('keyup', e => { if (e.key === 'Alt') altKeyDown = false; });
 
-    let popupShown = false; // only show once
+    let popupShown = false; // only once
 
     maps.forEach(map => {
       map.scrollWheelZoom.disable();
@@ -239,12 +258,7 @@
       container.addEventListener('mouseenter', () => {
         window.addEventListener('keydown', handleAltDown);
         window.addEventListener('keyup', handleAltUp);
-        if (altKeyDown) {
-          altHeld = true;
-          map.scrollWheelZoom.enable();
-        }
       });
-
       container.addEventListener('mouseleave', () => {
         window.removeEventListener('keydown', handleAltDown);
         window.removeEventListener('keyup', handleAltUp);
@@ -256,7 +270,7 @@
         if (!altHeld) {
           e.preventDefault();
           if (!popupShown) {
-            popupShown = true;
+            popupShown = true; // only once
             L.popup()
               .setLatLng(map.getCenter())
               .setContent("Hold <b>Alt</b> and scroll to zoom the map.")
@@ -268,4 +282,5 @@
   </script>
 </body>
 </html>
+
 
