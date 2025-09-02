@@ -68,6 +68,7 @@
     .map-container {
       display: none;
       flex: 1;
+      position: relative; /* needed for label positioning */
     }
 
     .map-container.active {
@@ -78,7 +79,7 @@
     .leaflet-container {
       height: 100%;
       width: 100%;
-      position: relative; /* needed for overlay positioning */
+      position: relative;
     }
 
     .circle-label {
@@ -90,11 +91,26 @@
       border: 1px solid #999;
     }
 
-    /* --- NEW: full-map grey overlay for Alt+Scroll message --- */
+    /* --- NEW: label for All Stations map --- */
+    .allstations-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #333;
+      border: 1px solid #999;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    /* --- Grey overlay for Alt+Scroll message --- */
     .alt-overlay {
       position: absolute;
       inset: 0;
-      display: none;            /* shown on demand */
+      display: none;
       align-items: center;
       justify-content: center;
       background: rgba(0,0,0,0.6);
@@ -102,8 +118,8 @@
       font-size: 18px;
       text-align: center;
       padding: 16px;
-      z-index: 1000;            /* above map controls */
-      pointer-events: none;     /* overlay shouldn't trap clicks */
+      z-index: 1000;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -120,7 +136,9 @@
   <div id="map1" class="map-container"></div>
   <div id="map2" class="map-container"></div>
   <div id="map3" class="map-container"></div>
-  <div id="map4" class="map-container active"></div>
+  <div id="map4" class="map-container active">
+    <div class="allstations-label">All Stations</div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -252,7 +270,7 @@
           });
         });
 
-      // draw largest circle for each station and add one label
+      // draw largest circle for each station (no labels here)
       [...mapConfigs]
         .sort((a, b) => {
           const aMax = Math.max(...a.ranges.map(r => r.m));
@@ -262,22 +280,12 @@
         .forEach(cfg => {
           let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
 
-          const circle = L.circle(cfg.center, {
+          L.circle(cfg.center, {
             radius: largestRange,
             fillColor: cfg.color,
             fillOpacity: 0.35,
             stroke: false
           }).addTo(allStationsMap);
-
-          // add one label + click
-          if (cfg.tooltip && cfg.url) {
-            circle.bindTooltip(cfg.tooltip, {
-              permanent: true,
-              direction: 'center',
-              className: 'circle-label'
-            });
-            circle.on('click', () => window.open(cfg.url, '_blank'));
-          }
         });
 
       const latLngs = [];
@@ -312,8 +320,8 @@
 
     showMap(4);
 
-    // --- Improved Alt+Scroll Zoom Implementation + GREY OVERLAY (only addition) ---
-    let altKeyDown = false; // global Alt key state
+    // --- Improved Alt+Scroll Zoom Implementation + GREY OVERLAY ---
+    let altKeyDown = false;
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Alt') {
@@ -327,7 +335,6 @@
       }
     });
 
-    // helper to create per-map overlay
     function createAltOverlay(container) {
       const overlay = document.createElement('div');
       overlay.className = 'alt-overlay';
@@ -340,7 +347,7 @@
       map.scrollWheelZoom.disable();
 
       const container = map.getContainer();
-      const overlay = createAltOverlay(container); // NEW
+      const overlay = createAltOverlay(container);
       let hideTimer = null;
 
       let altHeld = false;
@@ -349,7 +356,7 @@
         if (e.key === 'Alt' && !altHeld) {
           altHeld = true;
           map.scrollWheelZoom.enable();
-          overlay.style.display = 'none'; // hide overlay when Alt gets held
+          overlay.style.display = 'none';
         }
       }
 
@@ -375,22 +382,19 @@
         window.removeEventListener('keyup', handleAltUp);
         map.scrollWheelZoom.disable();
         altHeld = false;
-        overlay.style.display = 'none'; // make sure it’s hidden when leaving
+        overlay.style.display = 'none';
       });
 
-      // Show grey overlay EVERY time you try to scroll without Alt
       container.addEventListener('wheel', e => {
         if (!altHeld) {
           e.preventDefault();
           overlay.style.display = 'flex';
           if (hideTimer) clearTimeout(hideTimer);
-          // auto-hide after a short moment so it doesn't block the map
           hideTimer = setTimeout(() => {
             overlay.style.display = 'none';
           }, 1600);
           return;
         }
-        // original behavior: prevent default while Alt zoom is active
         e.preventDefault();
       }, { passive: false });
     });
