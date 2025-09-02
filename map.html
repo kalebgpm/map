@@ -232,17 +232,22 @@
           });
         });
 
-      mapConfigs.forEach(cfg => {
-  let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
-
-  // CHANGE HERE: use cfg.color instead of hard-coded grey
-  L.circle(cfg.center, {
-    radius: largestRange,
-    fillColor: cfg.color,   // was '#888888'
-    fillOpacity: 0.35,
-    stroke: false
-  }).addTo(allStationsMap);
-});
+     // sort so biggest circles are drawn first, smaller ones on top
+[...mapConfigs]
+  .sort((a, b) => {
+    const aMax = Math.max(...a.ranges.map(r => r.m));
+    const bMax = Math.max(...b.ranges.map(r => r.m));
+    return bMax - aMax; // larger first
+  })
+  .forEach(cfg => {
+    let largestRange = cfg.ranges.reduce((max, r) => r.m > max ? r.m : max, 0);
+    L.circle(cfg.center, {
+      radius: largestRange,
+      fillColor: cfg.color,
+      fillOpacity: 0.35,
+      stroke: false
+    }).addTo(allStationsMap);
+  });
 
 
       const latLngs = [];
