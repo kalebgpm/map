@@ -1,195 +1,271 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Station Maps</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+  <meta charset="utf-8" />
+  <title>Tabbed Maps</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      overflow: hidden;
     }
-    .map-container {
-      margin: 20px auto;
-      max-width: 900px;
+
+    .tabs {
+      display: flex;
+      background: #222;
+      height: 56px;
+      flex-shrink: 0;
     }
-    .map {
-      height: 500px;
-      margin-bottom: 40px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .circle-label {
-      background: transparent;
+
+    .tab-button {
+      flex: 1;
+      padding: 14px 0;
+      margin: 0;
       border: none;
-      box-shadow: none;
+      color: white;
+      font-size: 16px;
       font-weight: bold;
-      font-size: 14px;
-      color: black;
-      text-align: center;
+      cursor: pointer;
+      background-color: var(--bg-color);
+      transition: filter 0.2s ease, background-color 0.3s ease;
+      filter: brightness(1);
+    }
+
+    .tab-button:hover,
+    .tab-button.active {
+      filter: brightness(1.3);
+    }
+
+    .tab-bull { --bg-color: #FF6900; }
+    .tab-bobfm { --bg-color: #EF3224; }
+    .tab-cities { --bg-color: #007BC3; }
+    .tab-magic { --bg-color: #913750; }
+    .tab-all { --bg-color: #666666; }
+
+    .map-container {
+      display: none;
+      flex: 1;
+    }
+    .map-container.active {
+      display: block;
+      flex: 1;
+    }
+    .leaflet-container {
+      height: 100%;
+      width: 100%;
+    }
+
+    .circle-label {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #333;
+      border: 1px solid #999;
     }
   </style>
 </head>
 <body>
-
-  <div class="map-container">
-    <h2>All Stations Coverage</h2>
-    <div id="all-stations-map" class="map"></div>
+  <div class="tabs">
+    <button onclick="showMap(4)" class="tab-button tab-all active">All Stations</button>
+    <button onclick="showMap(0)" class="tab-button tab-bull">The Bull</button>
+    <button onclick="showMap(1)" class="tab-button tab-bobfm">BobFM</button>
+    <button onclick="showMap(2)" class="tab-button tab-cities">Cities</button>
+    <button onclick="showMap(3)" class="tab-button tab-magic">Magic</button>
   </div>
 
-  <div class="map-container">
-    <h2>107.7 FM Coverage</h2>
-    <div id="map-1077" class="map"></div>
-  </div>
+  <div id="map0" class="map-container"></div>
+  <div id="map1" class="map-container"></div>
+  <div id="map2" class="map-container"></div>
+  <div id="map3" class="map-container"></div>
+  <div id="map4" class="map-container active"></div>
 
-  <div class="map-container">
-    <h2>92.1 FM Coverage</h2>
-    <div id="map-921" class="map"></div>
-  </div>
-
-  <div class="map-container">
-    <h2>95.7 HD2 Coverage</h2>
-    <div id="map-957" class="map"></div>
-  </div>
-
-  <div class="map-container">
-    <h2>WPEO 98.3 FM Coverage</h2>
-    <div id="map-983" class="map"></div>
-  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
   <script>
-    // Map configs
+    const MILE_TO_METERS = 1609.34;
+    const maps = [];
+
     const mapConfigs = [
       {
-        id: "map-1077",
-        center: [40.4842, -88.9937],
-        color: "#ff7f00",
+        center: [40.63834, -88.78116],
         ranges: [
-          { m: 40000, o: 0.35 },
-          { m: 25000, o: 0.35 },
-          { m: 10000, o: 0.35 }
+          { m: 88514, o: 0.15 },
+          { m: 56327, o: 0.25 },
+          { m: 49889, o: 0.35 }
         ],
-        tooltip: "107.7 FM",
-        url: "https://1077thebull.com"
+        tooltip: "107.7 & 92.1 The Bull",
+        url: "https://www.1077thebull.com/",
+        color: "#FF6900"
       },
       {
-        id: "map-921",
-        center: [40.4842, -88.9937],
-        color: "#377eb8",
+        center: [40.4522, -88.9633],
         ranges: [
-          { m: 40000, o: 0.35 },
-          { m: 25000, o: 0.35 },
-          { m: 10000, o: 0.35 }
+          { m: 77248, o: 0.15 },
+          { m: 56327, o: 0.25 },
+          { m: 32187, o: 0.35 }
         ],
-        tooltip: "92.1 FM",
-        url: "https://921thebull.com"
+        tooltip: "97.9 BobFM",
+        url: "https://www.bob979fm.com/",
+        color: "#EF3224"
       },
       {
-        id: "map-957",
-        center: [40.4842, -88.9937],
-        color: "#4daf4a",
+        center: [40.4911, -88.7206],
         ranges: [
-          { m: 40000, o: 0.35 },
-          { m: 25000, o: 0.35 },
-          { m: 10000, o: 0.35 }
+          { m: 43 * MILE_TO_METERS, o: 0.15 },
+          { m: 33 * MILE_TO_METERS, o: 0.25 },
+          { m: 26 * MILE_TO_METERS, o: 0.35 }
         ],
-        tooltip: "95.7 HD2",
-        url: "https://957thebull.com"
+        tooltip: "Cities 92.9",
+        url: "https://www.cities929.com/",
+        color: "#007BC3"
       },
       {
-        id: "map-983",
-        center: [40.7042, -89.6037],
-        color: "#984ea3",
+        center: [40.5750, -88.8375],
         ranges: [
-          { m: 40000, o: 0.35 },
-          { m: 25000, o: 0.35 },
-          { m: 10000, o: 0.35 }
+          { m: 40 * MILE_TO_METERS, o: 0.15 },
+          { m: 33 * MILE_TO_METERS, o: 0.25 },
+          { m: 32 * MILE_TO_METERS, o: 0.35 }
         ],
-        tooltip: "WPEO 98.3 FM",
-        url: "https://wpeo.com"
+        tooltip: "Magic 99.5",
+        url: "https://www.magic995fm.com/",
+        color: "#913750"
       }
     ];
 
-    // Create individual station maps (normal Leaflet circles)
-    function createStationMap(cfg) {
-      const map = L.map(cfg.id).setView(cfg.center, 9);
+    // Build station maps
+    mapConfigs.forEach((cfg, i) => {
+      const map = L.map(`map${i}`, { scrollWheelZoom: false }).setView(cfg.center, 7);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(map);
 
-      [...cfg.ranges]
-        .sort((a, b) => b.m - a.m)
-        .forEach((r) => {
-          const circle = L.circle(cfg.center, {
-            radius: r.m,
-            fillColor: cfg.color,
-            fillOpacity: r.o,
-            stroke: false,
-            interactive: true,
-          }).addTo(map);
+      [...cfg.ranges].sort((a, b) => b.m - a.m).forEach((r) => {
+        const circle = L.circle(cfg.center, {
+          radius: r.m,
+          fillColor: cfg.color,
+          fillOpacity: r.o,
+          stroke: false,
+          interactive: true,
+        }).addTo(map);
 
-          const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
-          if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
-            circle.bindTooltip(cfg.tooltip, { permanent: true, direction: "center", className: "circle-label" });
-            circle.on("click", () => window.open(cfg.url, "_blank"));
-          }
-        });
-    }
+        const largestRadius = Math.max(...cfg.ranges.map(x => x.m));
+        if (cfg.tooltip && cfg.url && r.m !== largestRadius) {
+          circle.bindTooltip(cfg.tooltip, { permanent: true, direction: 'center', className: 'circle-label' });
+          circle.on('click', () => window.open(cfg.url, '_blank'));
+        }
+      });
 
-    mapConfigs.forEach(cfg => createStationMap(cfg));
+      maps.push(map);
+    });
 
-    // Create "All Stations" map with Turf.js subtraction for no blending
+    // --- All Stations Map ---
     function createAllStationsMap() {
-      const allStationsMap = L.map("all-stations-map").setView([40.4842, -88.9937], 8);
+      const allStationsMap = L.map('map4', { scrollWheelZoom: false });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap & CartoDB'
       }).addTo(allStationsMap);
 
-      let drawn = [];
+      [...mapConfigs].forEach(cfg => {
+        const largestRange = Math.max(...cfg.ranges.map(r => r.m));
+        L.circle(cfg.center, {
+          radius: largestRange,
+          fillColor: cfg.color,
+          fillOpacity: 0.35,
+          stroke: false
+        }).addTo(allStationsMap);
+      });
 
-      // Sort so largest coverage draws first
-      [...mapConfigs]
-        .sort((a, b) => {
-          const aMax = Math.max(...a.ranges.map(r => r.m));
-          const bMax = Math.max(...b.ranges.map(r => r.m));
-          return bMax - aMax;
-        })
-        .forEach(cfg => {
-          let largestRange = Math.max(...cfg.ranges.map(r => r.m));
+      // Add "All Stations" label in center of Illinois
+      const illinoisCenter = [40.0, -89.0];
+      L.marker(illinoisCenter, {
+        interactive: false
+      }).addTo(allStationsMap)
+        .bindTooltip("All Stations", { permanent: true, direction: 'center', className: 'circle-label' })
+        .openTooltip();
 
-          // Turf circle uses kilometers, so convert meters -> km
-          let circlePoly = turf.circle([cfg.center[1], cfg.center[0]], largestRange / 1000, {
-            steps: 64,
-            units: "kilometers"
-          });
+      allStationsMap.setView(illinoisCenter, 7);
 
-          // Subtract already drawn areas
-          drawn.forEach(d => {
-            const diff = turf.difference(circlePoly, d);
-            if (diff) circlePoly = diff;
-          });
-
-          if (circlePoly) {
-            L.geoJSON(circlePoly, {
-              style: {
-                fillColor: cfg.color,
-                fillOpacity: 0.35,
-                stroke: false
-              }
-            }).addTo(allStationsMap);
-
-            drawn.push(circlePoly);
-          }
-        });
+      maps.push(allStationsMap);
     }
 
     createAllStationsMap();
+
+    function showMap(idx) {
+      document.querySelectorAll('.map-container').forEach((el, i) => el.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-button').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+      setTimeout(() => maps[idx].invalidateSize(), 200);
+    }
+
+    showMap(4);
+
+    // --- Alt+Scroll Zoom + Popup ---
+    let altKeyDown = false;
+    window.addEventListener('keydown', e => { if (e.key === 'Alt') altKeyDown = true; });
+    window.addEventListener('keyup', e => { if (e.key === 'Alt') altKeyDown = false; });
+
+    let popupShown = false; // only show once
+
+    maps.forEach(map => {
+      map.scrollWheelZoom.disable();
+      const container = map.getContainer();
+      let altHeld = false;
+
+      function handleAltDown(e) {
+        if (e.key === 'Alt' && !altHeld) {
+          altHeld = true;
+          map.scrollWheelZoom.enable();
+        }
+      }
+      function handleAltUp(e) {
+        if (e.key === 'Alt') {
+          altHeld = false;
+          map.scrollWheelZoom.disable();
+        }
+      }
+
+      container.addEventListener('mouseenter', () => {
+        window.addEventListener('keydown', handleAltDown);
+        window.addEventListener('keyup', handleAltUp);
+        if (altKeyDown) {
+          altHeld = true;
+          map.scrollWheelZoom.enable();
+        }
+      });
+
+      container.addEventListener('mouseleave', () => {
+        window.removeEventListener('keydown', handleAltDown);
+        window.removeEventListener('keyup', handleAltUp);
+        map.scrollWheelZoom.disable();
+        altHeld = false;
+      });
+
+      container.addEventListener('wheel', e => {
+        if (!altHeld) {
+          e.preventDefault();
+          if (!popupShown) {
+            popupShown = true;
+            L.popup()
+              .setLatLng(map.getCenter())
+              .setContent("Hold <b>Alt</b> and scroll to zoom the map.")
+              .openOn(map);
+          }
+        }
+      }, { passive: false });
+    });
   </script>
 </body>
 </html>
+
