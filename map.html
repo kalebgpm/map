@@ -180,7 +180,10 @@
 
     mapConfigs.forEach((cfg, i) => {
       const map = L.map(`map${i}`, {
-        scrollWheelZoom: false
+        scrollWheelZoom: false,
+        zoomAnimation: true,
+        zoomSnap: 0.25,
+        zoomDelta: 0.5
       }).setView(cfg.center, 7);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -210,7 +213,10 @@
 
     function createAllStationsMap() {
       const allStationsMap = L.map('map4', {
-        scrollWheelZoom: false
+        scrollWheelZoom: false,
+        zoomAnimation: true,
+        zoomSnap: 0.25,
+        zoomDelta: 0.5
       });
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
