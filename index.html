@@ -10,27 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
-    /* small animated spotlight for hovered card */
+    /* spotlight follows mouse instantly */
     .spotlight {
       position: absolute;
       pointer-events: none;
-      width: 220px;
-      height: 120px;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.25), rgba(255,255,255,0) 40%);
+      width: 240px;
+      height: 140px;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.22), rgba(255,255,255,0) 40%);
       transform: translate(-50%, -50%);
-      transition: all 220ms ease;
+      transition: none; /* instant follow */
       filter: blur(18px);
       mix-blend-mode: screen;
     }
-    /* subtle fade-in for tab panels (simple CSS-only, not a React transition) */
-    .panel-enter { opacity: 0; transform: translateY(8px) scale(0.995); }
-    .panel-enter-active { opacity: 1; transform: translateY(0) scale(1); transition: all 320ms cubic-bezier(.2,.9,.25,1); }
-    .panel-exit { opacity: 1; }
-    .panel-exit-active { opacity: 0; transition: opacity 220ms ease; }
+    /* modal enter */
+    .modal-enter { opacity: 0; transform: translateY(8px); }
+    .modal-enter-active { opacity: 1; transform: translateY(0); transition: all 240ms ease-out; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-6">
-  <div id="root" class="w-full max-w-5xl"></div>
+  <div id="root" class="w-full max-w-6xl"></div>
 
   <!-- React + ReactDOM + Babel for JSX in-browser -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -40,19 +38,55 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Simple data: projects with optional preview images
+    // Sample projects with subtabs, galleries and text
     const PROJECTS = [
-      { id: 'p1', title: 'Acoustic Sessions Promo', tags: ['Design','React'], img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&q=80', description: 'A landing page for live acoustic events. Includes RSVP and music previews.' },
-      { id: 'p2', title: 'Storefront Promo Kit', tags: ['Marketing','Email'], img: '', description: 'Promotional assets and store page banners.' },
-      { id: 'p3', title: 'Wedding Booking Flow', tags: ['UX','Forms'], img: 'https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=1200&q=80', description: 'Booking microsite with calendar integration and discount code logic.' },
-      { id: 'p4', title: 'Billboard Mockup', tags: ['3D','Render'], img: '', description: 'High-resolution billboard mockups for seasonal campaigns.' }
-    ];
+  {
+    id: 'p1',
+    title: 'Acoustic Sessions Promo',
+    tags: ['Design','React'],
+    img: 'YOUR_MAIN_PREVIEW_IMAGE_1', // ← paste your main preview image
+    description: 'Landing page and RSVP flow for live acoustic events.',
+    subtabs: [
+      { title: 'Session 1', gallery: ['YOUR_IMAGE_1A','YOUR_IMAGE_1B'], text: 'Notes for Session 1.' },
+      { title: 'Session 2', gallery: ['YOUR_IMAGE_2A','YOUR_IMAGE_2B'], text: 'Notes for Session 2.' },
+      { title: 'Session 3', gallery: ['YOUR_IMAGE_3A','YOUR_IMAGE_3B'], text: 'Notes for Session 3.' },
+      { title: 'Session 4', gallery: ['YOUR_IMAGE_4A','YOUR_IMAGE_4B'], text: 'Notes for Session 4.' },
+      { title: 'Session 5', gallery: ['YOUR_IMAGE_5A','YOUR_IMAGE_5B'], text: 'Notes for Session 5.' },
+      { title: 'Session 6', gallery: ['YOUR_IMAGE_6A','YOUR_IMAGE_6B'], text: 'Notes for Session 6.' }
+    ]
+  },
+  {
+    id: 'p2',
+    title: 'Storefront Promo Kit',
+    tags: ['Marketing','Email'],
+    img: 'YOUR_MAIN_PREVIEW_IMAGE_2',
+    description: 'Promotional assets and store page banners.',
+    subtabs: [
+      { title: 'Asset 1', gallery: ['YOUR_IMAGE_A1'], text: 'Copy and usage instructions.' },
+      { title: 'Asset 2', gallery: ['YOUR_IMAGE_A2'], text: 'Copy and usage instructions.' },
+      { title: 'Asset 3', gallery: ['YOUR_IMAGE_A3'], text: 'Copy and usage instructions.' },
+      { title: 'Asset 4', gallery: ['YOUR_IMAGE_A4'], text: 'Copy and usage instructions.' }
+    ]
+  },
+  {
+    id: 'p3',
+    title: 'Wedding Booking Flow',
+    tags: ['UX','Forms'],
+    img: 'YOUR_MAIN_PREVIEW_IMAGE_3',
+    description: 'Booking microsite with calendar integration.',
+    subtabs: [
+      { title: 'Overview', gallery: ['YOUR_IMAGE_W1'], text: 'Overview of booking flow.' },
+      { title: 'Calendar', gallery: ['YOUR_IMAGE_W2'], text: 'Calendar integration details.' },
+      { title: 'Pricing', gallery: ['YOUR_IMAGE_W3'], text: 'Pricing & discounts.' }
+    ]
+  }
+];
 
     function Icon({ name, className='' }){
       const common = 'inline-block align-middle';
-      if(name === 'projects') return (<svg className={common + ' ' + className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
-      if(name === 'about') return (<svg className={common + ' ' + className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>);
-      if(name === 'contact') return (<svg className={common + ' ' + className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v1"></path><rect x="3" y="8" width="18" height="13" rx="2"></rect></svg>);
+      if(name === 'projects') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
+      if(name === 'about') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>);
+      if(name === 'contact') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v1"></path><rect x="3" y="8" width="18" height="13" rx="2"></rect></svg>);
       return null;
     }
 
@@ -66,13 +100,14 @@
       );
     }
 
-    function ProjectCard({ project, onHover }){
+    function ProjectCard({ project, onHover, onOpen }){
       const hasImg = !!project.img;
       return (
         <div
+          onClick={()=>onOpen(project)}
           onMouseMove={e => onHover(e, project.id)}
           onMouseLeave={() => onHover(null, null)}
-          className="relative group bg-slate-800/30 border border-white/6 rounded-2xl p-4 flex gap-4 items-start transition-transform transform hover:-translate-y-1 hover:scale-[1.01] shadow-lg">
+          className="cursor-pointer relative group bg-slate-800/30 border border-white/6 rounded-2xl p-4 flex gap-4 items-start transition-transform transform hover:-translate-y-1 hover:scale-[1.01] shadow-lg">
 
           <div className="w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center">
             {hasImg ? (
@@ -90,33 +125,107 @@
               </div>
               <div className="text-xs text-slate-400">{project.tags.join(' • ')}</div>
             </div>
-            <div className="mt-3 flex gap-2">
-              <a className="text-sm px-3 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 transition" href="#">Open</a>
-              <a className="text-sm px-3 py-1 rounded-md border border-white/6 hover:bg-white/4 transition" href="#">Details</a>
+          </div>
+        </div>
+      );
+    }
+
+    function SubTabModal({ open, project, onClose }){
+      const [activeIdx, setActiveIdx] = useState(0);
+      const activeSub = (project?.subtabs && project.subtabs[activeIdx]) || null;
+      const timerRef = useRef(null);
+
+      useEffect(()=>{
+        if(!open) return;
+        // auto-advance every 5 seconds
+        timerRef.current = setInterval(()=>{
+          const len = (project?.subtabs?.length) || 0;
+          if(len === 0) return;
+          setActiveIdx(i => (i+1) % len);
+        }, 5000);
+        return ()=> clearInterval(timerRef.current);
+      }, [open, project]);
+
+      if(!open || !project) return null;
+
+      const subtabs = project.subtabs || [];
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* backdrop blocks interaction and blurs background via css on root */}
+          <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
+
+          <div className="relative z-50 w-full max-w-6xl mx-4 modal-enter-active">
+            <div className="bg-slate-900/95 rounded-3xl p-6 border border-white/10 shadow-2xl">
+              <button onClick={onClose} className="absolute top-4 right-4 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 text-sm">Back</button>
+              <h2 className="text-xl font-bold mb-4">{project.title}</h2>
+
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Left: gallery display */}
+                <div className="md:w-3/5 bg-slate-800/40 rounded-xl p-2 h-72 overflow-hidden flex items-center justify-center">
+                  {activeSub && activeSub.gallery && activeSub.gallery.length > 0 ? (
+                    <img src={activeSub.gallery[0]} alt={activeSub.title} className="w-full h-full object-cover rounded-md" />
+                  ) : (
+                    <div className="text-slate-400 text-sm">No images for this subtab.</div>
+                  )}
+                </div>
+
+                {/* Right: text + thumbnails (six tabs) */}
+                <div className="md:w-2/5 flex flex-col gap-3">
+                  <div className="flex-1 bg-slate-800/30 rounded-xl p-4 text-slate-200 text-sm whitespace-pre-line h-44 overflow-auto">
+                    {activeSub?.text || 'No description available.'}
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-2">
+                    {Array.from({length:6}).map((_,i)=>{
+                      const st = subtabs[i];
+                      return (
+                        <button key={i} onClick={()=>setActiveIdx(i)} className={`h-16 rounded-md overflow-hidden border ${i===activeIdx? 'ring-2 ring-amber-400':'border-white/6'} bg-slate-700/40`}>
+                          {st && st.gallery && st.gallery[0] ? (
+                            <img src={st.gallery[0]} alt={st.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">{st? st.title : 'Empty'}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       );
     }
 
-    // Important: do NOT use ES module export syntax in a browser "text/babel" context.
-    // The previous error ("exports is not defined") occurs when bundler/module syntax is used in a plain browser environment.
-    // Define App as a plain function instead of "export default function App()".
     function App(){
       const [tab, setTab] = useState('projects');
       const [hoverSpot, setHoverSpot] = useState({ x: -9999, y: -9999 });
       const [hoveredId, setHoveredId] = useState(null);
+      const [hoveredCycleIdx, setHoveredCycleIdx] = useState(0);(null);
+      const [modalProject, setModalProject] = useState(null);
       const spotlightRef = useRef();
       const rootRef = useRef();
 
       useEffect(() => {
-        // move spotlight
         const el = spotlightRef.current;
         if(!el) return;
         el.style.left = hoverSpot.x + 'px';
         el.style.top = hoverSpot.y + 'px';
         el.style.opacity = hoveredId ? '1' : '0';
       }, [hoverSpot, hoveredId]);
+
+      // cycle preview images every 2.5s
+      useEffect(()=>{
+        if(!hoveredId){ setHoveredCycleIdx(0); return; }
+        const item = PROJECTS.find(x=>x.id===hoveredId);
+        const imgs = item?.subtabs?.flatMap(s=>s.gallery)||[];
+        if(imgs.length===0) return;
+        const t = setInterval(()=>{
+          setHoveredCycleIdx(i => (i+1) % imgs.length);
+        }, 2500);
+        return ()=> clearInterval(t);
+      }, [hoveredId]);
 
       function handleCardHover(e, id){
         if(!e){ setHoveredId(null); return; }
@@ -125,123 +234,132 @@
         setHoverSpot({ x: (e.clientX - rect.left), y: (e.clientY - rect.top) });
       }
 
-      // small keyboard shortcuts
+      // keyboard shortcuts
       useEffect(() => {
         function onKey(e){
           if(e.key === '1') setTab('projects');
           if(e.key === '2') setTab('about');
           if(e.key === '3') setTab('contact');
+          if(e.key === 'Escape') setModalProject(null);
         }
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
       }, []);
 
+      // when modal open, prevent background interaction by adding class on root container
+      const rootContainerClass = `relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 rounded-3xl p-8 ring-1 ring-white/6 shadow-2xl ${modalProject ? 'pointer-events-none blur-sm' : ''}`;
+
       return (
-        <div ref={rootRef} className="relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 rounded-3xl p-8 ring-1 ring-white/6 shadow-2xl">
+        <>
+          <div ref={rootRef} className={rootContainerClass}>
+            <div ref={spotlightRef} className="spotlight pointer-events-none" aria-hidden></div>
 
-          {/* floating spotlight */}
-          <div ref={spotlightRef} className="spotlight pointer-events-none"></div>
+            <header className="flex items-center justify-between gap-6 mb-6">
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight">Your Name</h1>
+                <div className="text-sm text-slate-400">Designer · Frontend · Community</div>
+              </div>
+              <nav className="flex gap-2">
+                <TabButton id="projects" label="Projects" active={tab==='projects'} onClick={setTab} icon="projects" />
+                <TabButton id="about" label="About" active={tab==='about'} onClick={setTab} icon="about" />
+                <TabButton id="contact" label="Contact" active={tab==='contact'} onClick={setTab} icon="contact" />
+              </nav>
+            </header>
 
-          <header className="flex items-center justify-between gap-6 mb-6">
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Your Name</h1>
-              <div className="text-sm text-slate-400">Designer · Frontend · Community</div>
-            </div>
-            <nav className="flex gap-2">
-              <TabButton id="projects" label="Projects" active={tab==='projects'} onClick={setTab} icon="projects" />
-              <TabButton id="about" label="About" active={tab==='about'} onClick={setTab} icon="about" />
-              <TabButton id="contact" label="Contact" active={tab==='contact'} onClick={setTab} icon="contact" />
-            </nav>
-          </header>
-
-          <main>
-            {tab === 'projects' && (
-              <section className="panel-enter panel-enter-active">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {PROJECTS.map(p => (
-                    <ProjectCard key={p.id} project={p} onHover={handleCardHover} />
-                  ))}
-                </div>
-
-                <div className="mt-6 flex items-start gap-6">
-                  <div className="w-56 h-36 rounded-lg bg-slate-700/60 overflow-hidden border border-white/6 flex items-center justify-center">
-                    {/* large preview area: show hovered image or default message */}
-                    {hoveredId ? (
-                      (() => {
-                        const item = PROJECTS.find(x=>x.id===hoveredId);
-                        if(item && item.img) return (<img src={item.img + '&auto=format&fit=crop&w=1200&q=60'} alt={item.title} className="w-full h-full object-cover" />)
-                        return (<div className="p-4 text-sm text-slate-300 text-center">No high-res preview for this project.</div>)
-                      })()
-                    ) : (
-                      <div className="p-4 text-sm text-slate-400 text-center">Hover a project to preview</div>
-                    )}
+            <main>
+              {tab === 'projects' && (
+                <section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {PROJECTS.map(p => (
+                      <ProjectCard key={p.id} project={p} onHover={handleCardHover} onOpen={(proj)=>setModalProject(proj)} />
+                    ))}
                   </div>
 
-                  <div className="flex-1 text-slate-300">
-                    <h3 className="font-semibold">Quick notes</h3>
-                    <ul className="mt-2 list-disc ml-5 text-sm text-slate-400">
-                      <li>Click a card to open a project's live link (placeholder here).</li>
-                      <li>Use keys 1/2/3 to jump between tabs.</li>
-                      <li>This single-file app runs on GitHub Pages without a build step.</li>
-                    </ul>
-                  </div>
-                </div>
-              </section>
-            )}
+                  <div className="mt-6 flex items-start gap-6">
+                    <div className="w-56 h-36 rounded-lg bg-slate-700/60 overflow-hidden border border-white/6 flex items-center justify-center">
+                      {/* large preview area: show hovered image or default message. */}
+                      {hoveredId ? (
+                        (() => {
+                          const item = PROJECTS.find(x=>x.id===hoveredId);
+                          const allImgs = item?.subtabs?.flatMap(s=>s.gallery)||[];
+                          if(allImgs.length>0) return (<img src={allImgs[hoveredCycleIdx]} alt={item.title} className="w-full h-full object-cover" />);
+                          if(item && item.img) return (<img src={item.img + '&auto=format&fit=crop&w=1200&q=60'} alt={item.title} className="w-full h-full object-cover" />)
+                          return (<div className="p-4 text-sm text-slate-300 text-center">No high-res preview for this project.</div>)
+                        })()
+                      ) : (
+                        <div className="p-4 text-sm text-slate-400 text-center">Hover a project to preview</div>
+                      )}
+                    </div>
 
-            {tab === 'about' && (
-              <section className="panel-enter panel-enter-active space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1 bg-slate-800/40 rounded-2xl p-4 flex flex-col items-center gap-3">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-300 to-pink-400 overflow-hidden ring-1 ring-white/6"></div>
-                    <div className="text-center">
-                      <div className="font-semibold">Your Name</div>
-                      <div className="text-xs text-slate-400">Frontend & Community</div>
+                    <div className="flex-1 text-slate-300">
+                      <h3 className="font-semibold">Quick notes</h3>
+                      <ul className="mt-2 list-disc ml-5 text-sm text-slate-400">
+                        <li>Click a card to open the project's sub-tabs gallery (overlaid modal).</li>
+                        <li>Modal auto-advances its subtabs every 5 seconds and shows up to 6 thumbnail tabs.</li>
+                        <li>Use keys 1/2/3 to jump between main tabs; Esc closes modal.</li>
+                      </ul>
                     </div>
                   </div>
-                  <div className="md:col-span-2 bg-slate-800/30 rounded-2xl p-4">
-                    <p className="text-slate-300">Hello — I build things for communities and help creative businesses get noticed. I enjoy mixing practical marketing, friendly customer interaction, and clean UI to make people feel welcome.</p>
-                    <div className="mt-3 text-sm text-slate-400">Skills: HTML · CSS · React · Figma · Email campaigns · Events</div>
-                  </div>
-                </div>
+                </section>
+              )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="col-span-1 bg-slate-800/20 rounded-2xl p-4">Achievements and quick links</div>
-                  <div className="col-span-2 bg-slate-800/20 rounded-2xl p-4">Community & events: short paragraph about how you handle event signups and on-site promotions.</div>
-                </div>
-              </section>
-            )}
-
-            {tab === 'contact' && (
-              <section className="panel-enter panel-enter-active">
-                <div className="bg-slate-800/20 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold">Get in touch</h3>
-                    <p className="text-slate-400 text-sm mt-2">I respond to messages about jobs, collabs, and bookings. Drop a note below or scan the QR during events.</p>
-                    <div className="mt-4 text-sm text-slate-300">Email: <span className="text-amber-400">you@domain.com</span></div>
-                    <div className="mt-2 text-sm text-slate-300">Phone: <span className="text-amber-400">(555) 555-5555</span></div>
-                  </div>
-                  <div>
-                    <form onSubmit={(e)=>{ e.preventDefault(); alert('Message submitted — replace this with your serverless form endpoint.'); }} className="space-y-3">
-                      <input placeholder="Your name" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
-                      <input placeholder="Email" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
-                      <textarea placeholder="Message" rows="4" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6"></textarea>
-                      <div className="flex justify-end">
-                        <button className="px-4 py-2 rounded-md bg-amber-500 text-slate-900 font-semibold">Send</button>
+              {tab === 'about' && (
+                <section className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1 bg-slate-800/40 rounded-2xl p-4 flex flex-col items-center gap-3">
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-300 to-pink-400 overflow-hidden ring-1 ring-white/6"></div>
+                      <div className="text-center">
+                        <div className="font-semibold">Your Name</div>
+                        <div className="text-xs text-slate-400">Frontend & Community</div>
                       </div>
-                    </form>
+                    </div>
+                    <div className="md:col-span-2 bg-slate-800/30 rounded-2xl p-4">
+                      <p className="text-slate-300">Hello — I build things for communities and help creative businesses get noticed. I enjoy mixing practical marketing, friendly customer interaction, and clean UI to make people feel welcome.</p>
+                      <div className="mt-3 text-sm text-slate-400">Skills: HTML · CSS · React · Figma · Email campaigns · Events</div>
+                    </div>
                   </div>
-                </div>
-              </section>
-            )}
-          </main>
 
-          <footer className="mt-6 text-xs text-slate-500">Built as a single-file React app — drop this <code className="text-amber-400">index.html</code> into a GitHub repo and enable Pages on the main branch to publish.</footer>
-        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="col-span-1 bg-slate-800/20 rounded-2xl p-4">Achievements and quick links</div>
+                    <div className="col-span-2 bg-slate-800/20 rounded-2xl p-4">Community & events: short paragraph about how you handle event signups and on-site promotions.</div>
+                  </div>
+                </section>
+              )}
+
+              {tab === 'contact' && (
+                <section>
+                  <div className="bg-slate-800/20 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold">Get in touch</h3>
+                      <p className="text-slate-400 text-sm mt-2">I respond to messages about jobs, collabs, and bookings. Drop a note below or scan the QR during events.</p>
+                      <div className="mt-4 text-sm text-slate-300">Email: <span className="text-amber-400">you@domain.com</span></div>
+                      <div className="mt-2 text-sm text-slate-300">Phone: <span className="text-amber-400">(555) 555-5555</span></div>
+                    </div>
+                    <div>
+                      <form onSubmit={(e)=>{ e.preventDefault(); alert('Message submitted — replace this with your serverless form endpoint.'); }} className="space-y-3">
+                        <input placeholder="Your name" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
+                        <input placeholder="Email" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
+                        <textarea placeholder="Message" rows="4" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6"></textarea>
+                        <div className="flex justify-end">
+                          <button className="px-4 py-2 rounded-md bg-amber-500 text-slate-900 font-semibold">Send</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </section>
+              )}
+            </main>
+
+            <footer className="mt-6 text-xs text-slate-500">Built as a single-file React app — drop this <code className="text-amber-400">index.html</code> into a GitHub repo and enable Pages on the main branch to publish.</footer>
+          </div>
+
+          {/* modal rendered outside root container so it stays sharp */}
+          <SubTabModal open={!!modalProject} project={modalProject} onClose={()=>setModalProject(null)} />
+        </>
       );
     }
 
-    // Render App using JSX (Babel will compile this in-browser)
+    // Render App
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
