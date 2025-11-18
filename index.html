@@ -14,17 +14,26 @@
     .spotlight {
       position: absolute;
       pointer-events: none;
-      width: 240px;
-      height: 140px;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.22), rgba(255,255,255,0) 40%);
+      width: 200px;
+      height: 120px;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.18), rgba(255,255,255,0) 40%);
       transform: translate(-50%, -50%);
       transition: none; /* instant follow */
-      filter: blur(18px);
+      filter: blur(16px);
       mix-blend-mode: screen;
     }
     /* modal enter */
     .modal-enter { opacity: 0; transform: translateY(8px); }
     .modal-enter-active { opacity: 1; transform: translateY(0); transition: all 240ms ease-out; }
+
+    /* extra responsive fine-tuning for very small screens (iPhone 13 mini width ~375px) */
+    @media (max-width: 400px) {
+      .root-padding { padding: 12px; }
+      .preview-box { width: 140px; height: 100px; }
+      .project-card-img { width: 60px; height: 44px; }
+      .modal-inner { padding: 12px; }
+      .modal-gallery { max-height: 50vh; }
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-6">
@@ -38,49 +47,49 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Sample projects with subtabs, galleries and text
+    // Replace these placeholder strings with your own image URLs when ready.
     const PROJECTS = [
-  {
-    id: 'p1',
-    title: 'Acoustic Sessions Promo',
-    tags: ['Design','React'],
-    img: 'YOUR_MAIN_PREVIEW_IMAGE_1', // ← paste your main preview image
-    description: 'Landing page and RSVP flow for live acoustic events.',
-    subtabs: [
-      { title: 'Session 1', gallery: ['YOUR_IMAGE_1A','YOUR_IMAGE_1B'], text: 'Notes for Session 1.' },
-      { title: 'Session 2', gallery: ['YOUR_IMAGE_2A','YOUR_IMAGE_2B'], text: 'Notes for Session 2.' },
-      { title: 'Session 3', gallery: ['YOUR_IMAGE_3A','YOUR_IMAGE_3B'], text: 'Notes for Session 3.' },
-      { title: 'Session 4', gallery: ['YOUR_IMAGE_4A','YOUR_IMAGE_4B'], text: 'Notes for Session 4.' },
-      { title: 'Session 5', gallery: ['YOUR_IMAGE_5A','YOUR_IMAGE_5B'], text: 'Notes for Session 5.' },
-      { title: 'Session 6', gallery: ['YOUR_IMAGE_6A','YOUR_IMAGE_6B'], text: 'Notes for Session 6.' }
-    ]
-  },
-  {
-    id: 'p2',
-    title: 'Storefront Promo Kit',
-    tags: ['Marketing','Email'],
-    img: 'YOUR_MAIN_PREVIEW_IMAGE_2',
-    description: 'Promotional assets and store page banners.',
-    subtabs: [
-      { title: 'Asset 1', gallery: ['YOUR_IMAGE_A1'], text: 'Copy and usage instructions.' },
-      { title: 'Asset 2', gallery: ['YOUR_IMAGE_A2'], text: 'Copy and usage instructions.' },
-      { title: 'Asset 3', gallery: ['YOUR_IMAGE_A3'], text: 'Copy and usage instructions.' },
-      { title: 'Asset 4', gallery: ['YOUR_IMAGE_A4'], text: 'Copy and usage instructions.' }
-    ]
-  },
-  {
-    id: 'p3',
-    title: 'Wedding Booking Flow',
-    tags: ['UX','Forms'],
-    img: 'YOUR_MAIN_PREVIEW_IMAGE_3',
-    description: 'Booking microsite with calendar integration.',
-    subtabs: [
-      { title: 'Overview', gallery: ['YOUR_IMAGE_W1'], text: 'Overview of booking flow.' },
-      { title: 'Calendar', gallery: ['YOUR_IMAGE_W2'], text: 'Calendar integration details.' },
-      { title: 'Pricing', gallery: ['YOUR_IMAGE_W3'], text: 'Pricing & discounts.' }
-    ]
-  }
-];
+      {
+        id: 'p1',
+        title: 'Acoustic Sessions Promo',
+        tags: ['Design','React'],
+        img: 'YOUR_MAIN_PREVIEW_IMAGE_1', // paste your main preview image URL here
+        description: 'Landing page and RSVP flow for live acoustic events.',
+        subtabs: [
+          { title: 'Session 1', gallery: ['YOUR_IMAGE_1A','YOUR_IMAGE_1B'], text: 'Notes for Session 1.' },
+          { title: 'Session 2', gallery: ['YOUR_IMAGE_2A','YOUR_IMAGE_2B'], text: 'Notes for Session 2.' },
+          { title: 'Session 3', gallery: ['YOUR_IMAGE_3A','YOUR_IMAGE_3B'], text: 'Notes for Session 3.' },
+          { title: 'Session 4', gallery: ['YOUR_IMAGE_4A','YOUR_IMAGE_4B'], text: 'Notes for Session 4.' },
+          { title: 'Session 5', gallery: ['YOUR_IMAGE_5A','YOUR_IMAGE_5B'], text: 'Notes for Session 5.' },
+          { title: 'Session 6', gallery: ['YOUR_IMAGE_6A','YOUR_IMAGE_6B'], text: 'Notes for Session 6.' }
+        ]
+      },
+      {
+        id: 'p2',
+        title: 'Storefront Promo Kit',
+        tags: ['Marketing','Email'],
+        img: 'YOUR_MAIN_PREVIEW_IMAGE_2',
+        description: 'Promotional assets and store page banners.',
+        subtabs: [
+          { title: 'Asset 1', gallery: ['YOUR_IMAGE_A1'], text: 'Copy and usage instructions.' },
+          { title: 'Asset 2', gallery: ['YOUR_IMAGE_A2'], text: 'Copy and usage instructions.' },
+          { title: 'Asset 3', gallery: ['YOUR_IMAGE_A3'], text: 'Copy and usage instructions.' },
+          { title: 'Asset 4', gallery: ['YOUR_IMAGE_A4'], text: 'Copy and usage instructions.' }
+        ]
+      },
+      {
+        id: 'p3',
+        title: 'Wedding Booking Flow',
+        tags: ['UX','Forms'],
+        img: 'YOUR_MAIN_PREVIEW_IMAGE_3',
+        description: 'Booking microsite with calendar integration.',
+        subtabs: [
+          { title: 'Overview', gallery: ['YOUR_IMAGE_W1'], text: 'Overview of booking flow.' },
+          { title: 'Calendar', gallery: ['YOUR_IMAGE_W2'], text: 'Calendar integration details.' },
+          { title: 'Pricing', gallery: ['YOUR_IMAGE_W3'], text: 'Pricing & discounts.' }
+        ]
+      }
+    ];
 
     function Icon({ name, className='' }){
       const common = 'inline-block align-middle';
@@ -107,11 +116,13 @@
           onClick={()=>onOpen(project)}
           onMouseMove={e => onHover(e, project.id)}
           onMouseLeave={() => onHover(null, null)}
+          onTouchStart={e => onHover(e, project.id)}
+          onTouchEnd={() => onHover(null, null)}
           className="cursor-pointer relative group bg-slate-800/30 border border-white/6 rounded-2xl p-4 flex gap-4 items-start transition-transform transform hover:-translate-y-1 hover:scale-[1.01] shadow-lg">
 
-          <div className="w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center">
+          <div className="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center project-card-img">
             {hasImg ? (
-              <img src={project.img + '&auto=format&fit=crop&w=800&q=60'} alt={project.title} className="w-full h-full object-cover" />
+              <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
             ) : (
               <div className="text-slate-400 text-xs text-center px-2">No preview<br/>available</div>
             )}
@@ -120,8 +131,8 @@
           <div className="flex-1">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <h3 className="text-lg font-semibold">{project.title}</h3>
-                <p className="text-slate-300 text-sm mt-1">{project.description}</p>
+                <h3 className="text-base sm:text-lg font-semibold">{project.title}</h3>
+                <p className="text-slate-300 text-xs sm:text-sm mt-1">{project.description}</p>
               </div>
               <div className="text-xs text-slate-400">{project.tags.join(' • ')}</div>
             </div>
@@ -155,32 +166,32 @@
           {/* backdrop blocks interaction and blurs background via css on root */}
           <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
 
-          <div className="relative z-50 w-full max-w-6xl mx-4 modal-enter-active">
-            <div className="bg-slate-900/95 rounded-3xl p-6 border border-white/10 shadow-2xl">
+          <div className="relative z-50 w-full max-w-3xl mx-4 modal-enter-active">
+            <div className="bg-slate-900/95 rounded-3xl p-6 border border-white/10 shadow-2xl modal-inner">
               <button onClick={onClose} className="absolute top-4 right-4 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 text-sm">Back</button>
-              <h2 className="text-xl font-bold mb-4">{project.title}</h2>
+              <h2 className="text-lg sm:text-xl font-bold mb-4">{project.title}</h2>
 
-              <div className="flex flex-col md:flex-row gap-4">
-                {/* Left: gallery display */}
-                <div className="md:w-3/5 bg-slate-800/40 rounded-xl p-2 h-72 overflow-hidden flex items-center justify-center">
+              <div className="flex flex-col gap-4 modal-gallery">
+                {/* Left (gallery) stacked above on small screens */}
+                <div className="w-full bg-slate-800/40 rounded-xl p-2 max-h-[60vh] overflow-auto flex items-center justify-center">
                   {activeSub && activeSub.gallery && activeSub.gallery.length > 0 ? (
-                    <img src={activeSub.gallery[0]} alt={activeSub.title} className="w-full h-full object-cover rounded-md" />
+                    <img src={activeSub.gallery[0]} alt={activeSub.title} className="w-full h-auto object-cover rounded-md" />
                   ) : (
                     <div className="text-slate-400 text-sm">No images for this subtab.</div>
                   )}
                 </div>
 
-                {/* Right: text + thumbnails (six tabs) */}
-                <div className="md:w-2/5 flex flex-col gap-3">
-                  <div className="flex-1 bg-slate-800/30 rounded-xl p-4 text-slate-200 text-sm whitespace-pre-line h-44 overflow-auto">
+                {/* Right: text + thumbnails become stacked below on small screens */}
+                <div className="flex flex-col gap-3">
+                  <div className="bg-slate-800/30 rounded-xl p-4 text-slate-200 text-sm whitespace-pre-line overflow-auto">
                     {activeSub?.text || 'No description available.'}
                   </div>
 
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="flex gap-2 overflow-x-auto">
                     {Array.from({length:6}).map((_,i)=>{
                       const st = subtabs[i];
                       return (
-                        <button key={i} onClick={()=>setActiveIdx(i)} className={`h-16 rounded-md overflow-hidden border ${i===activeIdx? 'ring-2 ring-amber-400':'border-white/6'} bg-slate-700/40`}>
+                        <button key={i} onClick={()=>setActiveIdx(i)} className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border ${i===activeIdx? 'ring-2 ring-amber-400':'border-white/6'} bg-slate-700/40`}>
                           {st && st.gallery && st.gallery[0] ? (
                             <img src={st.gallery[0]} alt={st.title} className="w-full h-full object-cover" />
                           ) : (
@@ -202,7 +213,7 @@
       const [tab, setTab] = useState('projects');
       const [hoverSpot, setHoverSpot] = useState({ x: -9999, y: -9999 });
       const [hoveredId, setHoveredId] = useState(null);
-      const [hoveredCycleIdx, setHoveredCycleIdx] = useState(0);(null);
+      const [hoveredCycleIdx, setHoveredCycleIdx] = useState(0);
       const [modalProject, setModalProject] = useState(null);
       const spotlightRef = useRef();
       const rootRef = useRef();
@@ -215,7 +226,7 @@
         el.style.opacity = hoveredId ? '1' : '0';
       }, [hoverSpot, hoveredId]);
 
-      // cycle preview images every 2.5s
+      // cycle preview images every 2.5s when hovering
       useEffect(()=>{
         if(!hoveredId){ setHoveredCycleIdx(0); return; }
         const item = PROJECTS.find(x=>x.id===hoveredId);
@@ -228,10 +239,14 @@
       }, [hoveredId]);
 
       function handleCardHover(e, id){
+        // e may be a touch or mouse event
         if(!e){ setHoveredId(null); return; }
         setHoveredId(id);
-        const rect = rootRef.current.getBoundingClientRect();
-        setHoverSpot({ x: (e.clientX - rect.left), y: (e.clientY - rect.top) });
+        // position spotlight only for pointer events that have coordinates
+        if(e && e.clientX != null){
+          const rect = rootRef.current.getBoundingClientRect();
+          setHoverSpot({ x: (e.clientX - rect.left), y: (e.clientY - rect.top) });
+        }
       }
 
       // keyboard shortcuts
@@ -247,17 +262,17 @@
       }, []);
 
       // when modal open, prevent background interaction by adding class on root container
-      const rootContainerClass = `relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 rounded-3xl p-8 ring-1 ring-white/6 shadow-2xl ${modalProject ? 'pointer-events-none blur-sm' : ''}`;
+      const rootContainerClass = `relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 rounded-3xl p-8 root-padding ring-1 ring-white/6 shadow-2xl ${modalProject ? 'pointer-events-none blur-sm' : ''}`;
 
       return (
         <>
           <div ref={rootRef} className={rootContainerClass}>
             <div ref={spotlightRef} className="spotlight pointer-events-none" aria-hidden></div>
 
-            <header className="flex items-center justify-between gap-6 mb-6">
+            <header className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight">Your Name</h1>
-                <div className="text-sm text-slate-400">Designer · Frontend · Community</div>
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Your Name</h1>
+                <div className="text-xs sm:text-sm text-slate-400">Designer · Frontend · Community</div>
               </div>
               <nav className="flex gap-2">
                 <TabButton id="projects" label="Projects" active={tab==='projects'} onClick={setTab} icon="projects" />
@@ -269,21 +284,21 @@
             <main>
               {tab === 'projects' && (
                 <section>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {PROJECTS.map(p => (
                       <ProjectCard key={p.id} project={p} onHover={handleCardHover} onOpen={(proj)=>setModalProject(proj)} />
                     ))}
                   </div>
 
-                  <div className="mt-6 flex items-start gap-6">
-                    <div className="w-56 h-36 rounded-lg bg-slate-700/60 overflow-hidden border border-white/6 flex items-center justify-center">
+                  <div className="mt-6 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                    <div className="preview-box w-40 h-28 sm:w-56 sm:h-36 rounded-lg bg-slate-700/60 overflow-hidden border border-white/6 flex items-center justify-center">
                       {/* large preview area: show hovered image or default message. */}
                       {hoveredId ? (
                         (() => {
                           const item = PROJECTS.find(x=>x.id===hoveredId);
                           const allImgs = item?.subtabs?.flatMap(s=>s.gallery)||[];
                           if(allImgs.length>0) return (<img src={allImgs[hoveredCycleIdx]} alt={item.title} className="w-full h-full object-cover" />);
-                          if(item && item.img) return (<img src={item.img + '&auto=format&fit=crop&w=1200&q=60'} alt={item.title} className="w-full h-full object-cover" />)
+                          if(item && item.img) return (<img src={item.img} alt={item.title} className="w-full h-full object-cover" />)
                           return (<div className="p-4 text-sm text-slate-300 text-center">No high-res preview for this project.</div>)
                         })()
                       ) : (
@@ -294,7 +309,7 @@
                     <div className="flex-1 text-slate-300">
                       <h3 className="font-semibold">Quick notes</h3>
                       <ul className="mt-2 list-disc ml-5 text-sm text-slate-400">
-                        <li>Click a card to open the project's sub-tabs gallery (overlaid modal).</li>
+                        <li>Tap/click a card to open the project's sub-tabs gallery (overlaid modal).</li>
                         <li>Modal auto-advances its subtabs every 5 seconds and shows up to 6 thumbnail tabs.</li>
                         <li>Use keys 1/2/3 to jump between main tabs; Esc closes modal.</li>
                       </ul>
@@ -307,7 +322,7 @@
                 <section className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-1 bg-slate-800/40 rounded-2xl p-4 flex flex-col items-center gap-3">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-300 to-pink-400 overflow-hidden ring-1 ring-white/6"></div>
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 to-pink-400 overflow-hidden ring-1 ring-white/6"></div>
                       <div className="text-center">
                         <div className="font-semibold">Your Name</div>
                         <div className="text-xs text-slate-400">Frontend & Community</div>
@@ -365,3 +380,4 @@
   </script>
 </body>
 </html>
+
