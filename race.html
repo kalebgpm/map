@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Typing Racer — Locked Until Correct</title>
+<title>Typing Racer — Full (Stats, Avatar, Shop, Achievements)</title>
 <style>
   :root{
-    --bg:#0b0f16; --muted:#9aa7d1; --good:#6bf59a; --bad:#ff6b6b; --accent:#ffd66b;
+    --bg:#07101a; --panel:#0f1724; --muted:#9aa7d1; --good:#6bf59a; --bad:#ff6b6b; --accent:#ffd66b;
   }
   html,body{height:100%;margin:0;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;background:var(--bg);color:#e6eef8}
   .wrap{max-width:980px;margin:18px auto;padding:18px;display:flex;flex-direction:column;gap:12px}
@@ -28,14 +28,74 @@
   .modal{background:#06101a;padding:20px;border-radius:10px;border:2px solid rgba(255,255,255,0.04);width:min(720px,92vw);color:#eaf0ff}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .modal button{margin-top:12px}
-  @media(max-width:760px){ canvas{width:100%;height:200px} .stats-box{display:none} }
+
+/* Player stats bottom drawer */
+#playerStatsBtn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #111;
+    color: white;
+    text-align: center;
+    padding: 12px;
+    font-size: 18px;
+    cursor: pointer;
+    border-top: 2px solid rgba(255,255,255,0.06);
+    z-index: 999;
+    backdrop-filter: blur(4px);
+}
+#playerStatsPanel {
+    position: fixed;
+    bottom: -420px;
+    left: 0;
+    width: 100%;
+    height: 420px;
+    background: linear-gradient(180deg,#071018,#08121a);
+    border-top: 3px solid rgba(255,255,255,0.04);
+    color: white;
+    padding: 14px;
+    box-sizing: border-box;
+    transition: bottom 0.36s ease;
+    overflow-y: auto;
+    z-index: 998;
+    display:flex;
+    gap:12px;
+}
+#playerStatsPanel .left, #playerStatsPanel .right { padding:6px; }
+#playerStatsPanel .left { width:340px; border-right:1px dashed rgba(255,255,255,0.03); }
+#playerStatsPanel h2{margin:6px 0 12px 0}
+#avatarChoices { display:flex; gap:10px; margin:8px 0; }
+.avatarOption { width:44px;height:44px;border:2px solid rgba(255,255,255,0.06);cursor:pointer; image-rendering:pixelated; }
+#avatarPreview { width:96px;height:96px;background:#0b0b0b;border:3px solid rgba(255,255,255,0.06);margin-top:8px;background-size:cover;background-position:center; }
+.inputRow { display:flex; gap:8px; align-items:center; margin-top:6px; }
+.statLine { display:flex; justify-content:space-between; margin:6px 0; font-size:13px; color:var(--muted); }
+
+/* tabs */
+.statsTabs { display:flex; gap:8px; margin-top:8px; }
+.tabBtn { padding:6px 8px; background:transparent; border:1px solid rgba(255,255,255,0.03); cursor:pointer; border-radius:6px; color:var(--muted); }
+.tabActive { background:rgba(255,255,255,0.02); color:var(--accent); border-color:rgba(255,255,255,0.06); }
+
+/* pixel editor */
+#pixelEditor { display:grid; grid-template-columns: repeat(8, 20px); gap:4px; margin-top:8px; }
+.pixelCell { width:20px;height:20px;border:1px solid rgba(255,255,255,0.03);cursor:pointer; image-rendering:pixelated; }
+.palette { display:flex; gap:6px; margin-top:8px; }
+
+/* achievements & shop lists */
+.listBox { margin-top:8px; max-height:220px; overflow:auto; padding-right:6px; }
+.achievement { display:flex; gap:8px; align-items:center; margin-bottom:8px; color:var(--muted); }
+.achUnlocked { color:var(--good); }
+.shopItem { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:8px; border:1px solid rgba(255,255,255,0.03); margin-bottom:8px; border-radius:6px; }
+
+/* small helpers */
+.badge { padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.03); color:var(--muted); font-size:12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:12px">
-    <h1>Pixel Typing Racer</h1>
-    <div class="small-muted">Locked until correct: wrong character locks input (no backspace). Spacebar works.</div>
+    <h1>Pixel Typing Racer — Full Edition</h1>
+    <div class="small-muted">Locked-until-correct typing, avatar, levels, achievements, shop & more.</div>
   </div>
 
   <div class="game">
@@ -48,11 +108,11 @@
       <button id="skipBtn">Skip Prompt</button>
       <button id="randomToggle">Random Prompts: ON</button>
       <div class="stats-box">
-        <div class="live-stats">
+        <div style="display:flex;gap:12px;align-items:center">
           <div>WPM: <strong id="liveWpm">0</strong></div>
           <div>CPS: <strong id="liveCps">0.00</strong></div>
           <div>Errors: <strong id="liveErrors">0</strong></div>
-          <div>Progress: <strong id="liveProgress">0%</strong></div>
+          <div>Coins: <strong id="liveCoins">0</strong></div>
         </div>
         <div class="small-muted">AI follows your recent speed with randomness.</div>
       </div>
@@ -61,15 +121,92 @@
     <div class="prompt-area" tabindex="0" id="promptArea">
       <div class="typed-line" id="typedLine"></div>
       <div class="expected-line" id="expectedLine"></div>
-      <div style="margin-top:8px" class="small-muted">If you type the wrong character, the game locks until the correct character is typed. Holding keys won't let you cheat.</div>
+      <div style="margin-top:8px" class="small-muted">If you type the wrong character, the game locks until the correct character is typed. Space works. Backspace disabled.</div>
     </div>
   </div>
 </div>
 
+<!-- Player Stats Drawer -->
+<div id="playerStatsBtn">Player Panel ▼</div>
+<div id="playerStatsPanel" aria-hidden="true">
+  <div class="left">
+    <h2>Profile</h2>
+    <div class="inputRow">
+      <div>
+        <div id="avatarPreview" title="Avatar preview"></div>
+        <div style="margin-top:6px">
+          <input id="avatarUpload" type="file" accept="image/*" />
+        </div>
+      </div>
+      <div style="flex:1">
+        <label>Name</label>
+        <input id="playerName" type="text" placeholder="Enter name" style="width:100%;padding:6px;margin-top:6px;background:#07111a;border:1px solid rgba(255,255,255,0.04);color:#eaf0ff" />
+        <div style="margin-top:8px" class="statLine"><div>Level</div><div><span id="playerLevel">1</span> (<span id="playerXP">0</span>/<span id="xpNext">100</span>)</div></div>
+        <div class="statLine"><div>Tier</div><div id="playerTier">Beginner</div></div>
+        <div class="statLine"><div>Personal Best</div><div id="bestWPM">0</div></div>
+        <div class="statLine"><div>Coins</div><div id="coinCount">0</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:8px">
+      <h3>Choose Color Avatar</h3>
+      <div id="avatarChoices"></div>
+
+      <h3 style="margin-top:10px">Pixel Avatar Editor</h3>
+      <div class="palette" id="palette"></div>
+      <div id="pixelEditor"></div>
+      <div style="margin-top:6px">
+        <button id="applyPixel">Apply Pixel Avatar</button>
+        <button id="clearPixel">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;gap:6px">
+        <button class="tabBtn tabActive" id="tabProfile">Profile</button>
+        <button class="tabBtn" id="tabAchievements">Achievements</button>
+        <button class="tabBtn" id="tabShop">Shop</button>
+      </div>
+      <div style="text-align:right">
+        <div class="badge">XP: <span id="smallXP">0</span></div>
+        <div style="height:6px"></div>
+        <div class="badge">Level: <span id="smallLevel">1</span></div>
+      </div>
+    </div>
+
+    <div id="tabContent" style="margin-top:10px;">
+      <!-- Profile quick info -->
+      <div id="profileTab">
+        <h3>Quick Stats</h3>
+        <div class="statLine"><div>Races Played</div><div id="statRaces">0</div></div>
+        <div class="statLine"><div>Average WPM</div><div id="statAvgWpm">0</div></div>
+        <div class="statLine"><div>Best Accuracy</div><div id="statBestAcc">0%</div></div>
+      </div>
+
+      <!-- Achievements -->
+      <div id="achievementsTab" style="display:none">
+        <h3>Achievements</h3>
+        <div class="listBox" id="achList"></div>
+      </div>
+
+      <!-- Shop -->
+      <div id="shopTab" style="display:none">
+        <h3>Shop</h3>
+        <div class="listBox" id="shopList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Modal placeholder -->
 <div id="modalWrap" style="display:none"></div>
 
 <script>
-/* ===== PROMPTS ===== */
+/* ===========================
+   Game prompts & canvas setup
+   =========================== */
 const PROMPTS = [
   "The steam from the kettle spelled out a secret message.",
   "Moonlight painted silver stripes across the old barn roof.",
@@ -93,9 +230,9 @@ const PROMPTS = [
   "The lighthouse blinked messages to ships and passing satellites."
 ];
 
-/* ===== CANVAS & UI ===== */
 const canvas = document.getElementById('raceCanvas');
-const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
 const START_X = 48;
 const FINISH_X = canvas.width - 64;
@@ -106,19 +243,18 @@ const expectedLine = document.getElementById('expectedLine');
 const liveWpm = document.getElementById('liveWpm');
 const liveCps = document.getElementById('liveCps');
 const liveErrors = document.getElementById('liveErrors');
-const liveProgress = document.getElementById('liveProgress');
+const liveCoins = document.getElementById('liveCoins');
 const newBtn = document.getElementById('newBtn');
 const skipBtn = document.getElementById('skipBtn');
 const randomToggle = document.getElementById('randomToggle');
 const promptArea = document.getElementById('promptArea');
 const modalWrap = document.getElementById('modalWrap');
 
-/* ===== STATE ===== */
 let randomPrompts = true;
 let prompt = "";
-let index = 0;                // how many correct chars consumed
-let isLocked = false;        // locked until correct char typed
-let lockedWrongChar = "";    // shows the wrong char that locked the game
+let index = 0;
+let isLocked = false;
+let lockedWrongChar = "";
 let errors = 0;
 let startTime = null;
 let finished = false;
@@ -129,16 +265,307 @@ let aiErrors = 0;
 let aiSpeedCPS = 2.2;
 let playerTimestamps = [];
 
-/* UTIL */
-function pickPrompt(){ return randomPrompts ? PROMPTS[Math.floor(Math.random()*PROMPTS.length)] : PROMPTS[0]; }
-function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* ===========================
+   Player persistent data
+   =========================== */
+const DEFAULT_PLAYER = {
+  name: '',
+  avatar: '', // dataURL or color
+  bestWPM: 0,
+  xp: 0,
+  level: 1,
+  coins: 0,
+  races: 0,
+  totalWpm: 0, // for average
+  bestAcc: 0,
+  achievements: {},
+  owned: {} // shop ownership
+};
 
-/* NEW RACE */
+let player = loadPlayer();
+
+function loadPlayer(){
+  const raw = localStorage.getItem('typingRacerPlayer');
+  if(raw) {
+    try { return Object.assign({}, DEFAULT_PLAYER, JSON.parse(raw)); }
+    catch(e){ return Object.assign({}, DEFAULT_PLAYER); }
+  }
+  return Object.assign({}, DEFAULT_PLAYER);
+}
+function savePlayer(){ localStorage.setItem('typingRacerPlayer', JSON.stringify(player)); }
+
+/* ============= UI elements for player panel ============= */
+const playerStatsBtn = document.getElementById('playerStatsBtn');
+const playerStatsPanel = document.getElementById('playerStatsPanel');
+const avatarPreview = document.getElementById('avatarPreview');
+const avatarChoices = document.getElementById('avatarChoices');
+const avatarUpload = document.getElementById('avatarUpload');
+const playerName = document.getElementById('playerName');
+const bestWPMel = document.getElementById('bestWPM');
+const coinCountEl = document.getElementById('coinCount');
+const playerLevelEl = document.getElementById('playerLevel');
+const playerXPEl = document.getElementById('playerXP');
+const xpNextEl = document.getElementById('xpNext');
+const playerTierEl = document.getElementById('playerTier');
+const smallXP = document.getElementById('smallXP');
+const smallLevel = document.getElementById('smallLevel');
+
+const tabProfileBtn = document.getElementById('tabProfile');
+const tabAchievementsBtn = document.getElementById('tabAchievements');
+const tabShopBtn = document.getElementById('tabShop');
+const profileTab = document.getElementById('profileTab');
+const achievementsTab = document.getElementById('achievementsTab');
+const shopTab = document.getElementById('shopTab');
+const achList = document.getElementById('achList');
+const shopList = document.getElementById('shopList');
+
+const statRaces = document.getElementById('statRaces');
+const statAvgWpm = document.getElementById('statAvgWpm');
+const statBestAcc = document.getElementById('statBestAcc');
+
+/* ===========================
+   Avatar: 5 color options + pixel editor
+   =========================== */
+const COLORS = ['#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff'];
+function buildAvatarChoices(){
+  avatarChoices.innerHTML = '';
+  COLORS.forEach(col=>{
+    const d = document.createElement('div');
+    d.className = 'avatarOption';
+    d.style.background = col;
+    d.addEventListener('click', ()=> {
+      player.avatar = col;
+      avatarPreview.style.backgroundImage = '';
+      avatarPreview.style.background = col;
+      savePlayer(); updatePanelDisplays();
+    });
+    avatarChoices.appendChild(d);
+  });
+}
+buildAvatarChoices();
+
+avatarUpload.addEventListener('change', function(){
+  const file = this.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=> {
+    player.avatar = reader.result;
+    avatarPreview.style.backgroundImage = `url(${reader.result})`;
+    avatarPreview.style.background = '';
+    savePlayer(); updatePanelDisplays();
+  };
+  reader.readAsDataURL(file);
+});
+
+/* Pixel editor (8x8) */
+const pixelEditor = document.getElementById('pixelEditor');
+const palette = document.getElementById('palette');
+const applyPixel = document.getElementById('applyPixel');
+const clearPixel = document.getElementById('clearPixel');
+
+const PALETTE_COLS = ['#000000','#ffffff','#ff4444','#44ff44','#4444ff','#ffd66b','#ff6b6b','#a0a0a0'];
+let selectedPaint = PALETTE_COLS[2];
+
+function buildPalette(){
+  palette.innerHTML = '';
+  PALETTE_COLS.forEach(c=>{
+    const p = document.createElement('div');
+    p.style.width='20px'; p.style.height='20px'; p.style.background=c; p.style.cursor='pointer'; p.style.border='1px solid rgba(255,255,255,0.04)';
+    p.addEventListener('click', ()=> selectedPaint = c);
+    palette.appendChild(p);
+  });
+}
+buildPalette();
+
+let pixelGrid = new Array(64).fill('#000000');
+function buildPixelEditor(){
+  pixelEditor.innerHTML = '';
+  for(let i=0;i<64;i++){
+    const cell = document.createElement('div');
+    cell.className = 'pixelCell';
+    cell.style.background = pixelGrid[i];
+    cell.addEventListener('click', ()=> {
+      pixelGrid[i] = selectedPaint;
+      cell.style.background = selectedPaint;
+    });
+    pixelEditor.appendChild(cell);
+  }
+}
+buildPixelEditor();
+
+applyPixel.addEventListener('click', ()=>{
+  // create a small dataURI from the 8x8 color grid using canvas
+  const s = 64;
+  const tmp = document.createElement('canvas');
+  tmp.width = 8; tmp.height = 8;
+  const tctx = tmp.getContext('2d');
+  for(let y=0;y<8;y++){
+    for(let x=0;x<8;x++){
+      tctx.fillStyle = pixelGrid[y*8 + x];
+      tctx.fillRect(x,y,1,1);
+    }
+  }
+  const data = tmp.toDataURL();
+  player.avatar = data;
+  avatarPreview.style.backgroundImage = `url(${data})`;
+  avatarPreview.style.background = '';
+  savePlayer(); updatePanelDisplays();
+});
+clearPixel.addEventListener('click', ()=>{
+  pixelGrid.fill('#000000'); buildPixelEditor();
+});
+
+/* ===========================
+   Achievements & Shop data
+   =========================== */
+const ACHIEVEMENTS = [
+  { id:'no_errors', title:'Flawless', desc:'Finish a race with 0 errors.', reward: 25 },
+  { id:'fast_100wpm', title:'Century Club', desc:'Finish a race >= 100 WPM.', reward: 50 },
+  { id:'first_win', title:'First Victory', desc:'Win your first race (you finish first).', reward: 10 },
+  { id:'play_10', title:'Regular', desc:'Play 10 races.', reward: 20 },
+  { id:'perfect_accuracy', title:'Perfect Accuracy', desc:'Finish race with 100% accuracy.', reward: 50 }
+];
+
+const SHOP_ITEMS = [
+  { id:'car_red', name:'Red Car', price: 40, type:'carColor', data:'#ff6b6b' },
+  { id:'car_blue', name:'Blue Car', price: 40, type:'carColor', data:'#6ba6ff' },
+  { id:'frame_gold', name:'Gold Frame', price: 60, type:'frame', data:'gold' },
+  { id:'frame_neon', name:'Neon Frame', price: 80, type:'frame', data:'neon' }
+];
+
+function buildAchievementsList(){
+  achList.innerHTML = '';
+  ACHIEVEMENTS.forEach(a=>{
+    const el = document.createElement('div');
+    el.className = 'achievement' + (player.achievements[a.id] ? ' achUnlocked' : '');
+    el.innerHTML = `<div style="width:36px;height:36px;border-radius:6px;background:${player.achievements[a.id] ? '#2be08a' : '#222'};display:flex;align-items:center;justify-content:center">${player.achievements[a.id] ? '✓' : '•'}</div>
+                    <div style="flex:1"><strong style="color:${player.achievements[a.id] ? '#bfffd2' : 'var(--muted)'}">${a.title}</strong><div style="font-size:12px;color:var(--muted)">${a.desc}</div></div>
+                    <div style="font-size:12px;color:var(--muted)">${a.reward} coins</div>`;
+    achList.appendChild(el);
+  });
+}
+
+function buildShop(){
+  shopList.innerHTML = '';
+  SHOP_ITEMS.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'shopItem';
+    const owned = player.owned[it.id];
+    el.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><div style="width:36px;height:24px;background:${it.data};border:1px solid rgba(255,255,255,0.04)"></div><div><strong>${it.name}</strong><div style="font-size:12px;color:var(--muted)">${it.price} coins</div></div></div>
+                    <div>${owned ? '<span style="color:var(--good)">OWNED</span>' : `<button data-id="${it.id}" class="buyBtn">Buy</button>`}</div>`;
+    shopList.appendChild(el);
+  });
+  document.querySelectorAll('.buyBtn').forEach(b=>{
+    b.addEventListener('click', ()=> {
+      const id = b.dataset.id;
+      const item = SHOP_ITEMS.find(si=>si.id===id);
+      if(!item) return;
+      if(player.coins < item.price){ alert('Not enough coins'); return; }
+      player.coins -= item.price;
+      player.owned[id] = true;
+      // immediate effect: if carColor, set preview car color via player.avatar or car customization
+      if(item.type === 'carColor') {
+        // store chosen car color cosmetic
+        player.carColor = item.data;
+      }
+      savePlayer(); updatePanelDisplays(); buildShop();
+    });
+  });
+}
+
+/* ===========================
+   Panel & tab behavior
+   =========================== */
+let panelOpen = false;
+playerStatsBtn.addEventListener('click', ()=> {
+  panelOpen = !panelOpen;
+  playerStatsPanel.style.bottom = panelOpen ? '0px' : '-420px';
+  playerStatsBtn.textContent = panelOpen ? 'Player Panel ▲' : 'Player Panel ▼';
+  if(panelOpen){ updatePanelDisplays(); }
+});
+
+tabProfileBtn.addEventListener('click', ()=> { showTab('profile'); });
+tabAchievementsBtn.addEventListener('click', ()=> { showTab('achievements'); });
+tabShopBtn.addEventListener('click', ()=> { showTab('shop'); });
+
+function showTab(t){
+  tabProfileBtn.classList.remove('tabActive'); tabAchievementsBtn.classList.remove('tabActive'); tabShopBtn.classList.remove('tabActive');
+  profileTab.style.display = 'none'; achievementsTab.style.display = 'none'; shopTab.style.display = 'none';
+  if(t==='profile'){ tabProfileBtn.classList.add('tabActive'); profileTab.style.display='block'; }
+  if(t==='achievements'){ tabAchievementsBtn.classList.add('tabActive'); achievementsTab.style.display='block'; buildAchievementsList(); }
+  if(t==='shop'){ tabShopBtn.classList.add('tabActive'); shopTab.style.display='block'; buildShop(); }
+}
+
+/* ===========================
+   Tier and XP system
+   =========================== */
+function xpForNext(level){
+  // simple quadratic progression
+  return Math.round(100 * level * level);
+}
+function getTierByLevel(level){
+  if(level < 3) return 'Beginner';
+  if(level < 6) return 'Decent';
+  if(level < 10) return 'Good';
+  if(level < 15) return 'Fast';
+  if(level < 22) return 'Elite';
+  return 'Godlike';
+}
+
+function grantXP(amount){
+  player.xp += amount;
+  // level up while possible
+  while(player.xp >= xpForNext(player.level)){
+    player.xp -= xpForNext(player.level);
+    player.level++;
+    // reward coins on level up
+    player.coins += 25;
+  }
+  savePlayer(); updatePanelDisplays();
+}
+
+/* ===========================
+   Update UI panel displays
+   =========================== */
+function updatePanelDisplays(){
+  avatarPreview.style.backgroundImage = player.avatar && player.avatar.startsWith('data:') ? `url(${player.avatar})` : '';
+  if(!player.avatar || (player.avatar && !player.avatar.startsWith('data:'))) {
+    // if stored color string
+    if(player.avatar) avatarPreview.style.background = player.avatar;
+    else avatarPreview.style.background = '#0b0b0b';
+  } else avatarPreview.style.background = '';
+  playerName.value = player.name || '';
+  bestWPMel.textContent = Math.round(player.bestWPM);
+  coinCountEl.textContent = player.coins;
+  playerLevelEl.textContent = player.level;
+  playerXPEl.textContent = player.xp;
+  xpNextEl.textContent = xpForNext(player.level);
+  playerTierEl.textContent = getTierByLevel(player.level);
+  smallXP.textContent = player.xp;
+  smallLevel.textContent = player.level;
+
+  // quick stats
+  statRaces.textContent = player.races;
+  statAvgWpm.textContent = player.races ? Math.round(player.totalWpm / player.races) : 0;
+  statBestAcc.textContent = player.bestAcc + '%';
+
+  liveCoins.textContent = player.coins;
+  savePlayer();
+}
+
+/* update name live */
+playerName.addEventListener('input', ()=> { player.name = playerName.value; savePlayer(); });
+
+/* ===========================
+   Game logic (locked until correct)
+   =========================== */
+function pickPrompt(){ return randomPrompts ? PROMPTS[Math.floor(Math.random()*PROMPTS.length)] : PROMPTS[0]; }
+
 function newRace(){
   prompt = pickPrompt();
   index = 0;
   isLocked = false;
-  lockedWrongChar = "";
+  lockedWrongChar = '';
   errors = 0;
   aiIndex = 0;
   aiErrors = 0;
@@ -146,27 +573,22 @@ function newRace(){
   startTime = null;
   finished = false;
   aiSpeedCPS = 2.2 + Math.random()*0.8;
-  modalWrap.style.display = 'none';
   updateDisplays();
   requestAnimationFrame(draw);
 }
 newRace();
 
-/* INPUT: use keydown to capture repeats, but we control locking so repeats cannot cheat */
+/* keyboard handling: we'll use keydown to capture repeats but logic prevents cheating */
 window.addEventListener('keydown', e=>{
-  // prevent backspace navigation & prevent space scrolling
   if(e.key === 'Backspace'){ e.preventDefault(); return; }
   if(e.code === 'Space') e.preventDefault();
 
   if(finished) return;
-
-  // only process printable single-character keys and space
   const key = e.key;
   if(key.length !== 1) return;
 
   if(!startTime) startTime = performance.now();
 
-  // record timestamp for CPS smoothing (only record for keys that attempt to do something)
   const now = performance.now();
   playerTimestamps.push(now);
   while(playerTimestamps.length && playerTimestamps[0] < now - 6000) playerTimestamps.shift();
@@ -174,25 +596,19 @@ window.addEventListener('keydown', e=>{
   const expected = prompt.charAt(index);
 
   if(isLocked){
-    // locked: only allow unlocking if they type the expected char
     if(key === expected){
-      // correct -> consume and unlock
       index++;
       isLocked = false;
-      lockedWrongChar = "";
+      lockedWrongChar = '';
     } else {
-      // still wrong -> ignore (do not accumulate multiple wrongs or queue), but count a single error per distinct wrong-press event
-      // increment errors only on the first wrong press that created the lock (we already counted it when locking)
-      // here, if user keeps hitting wrong key, we do NOT add more errors (prevents holding letter to bloat counters)
-      // so simply ignore
+      // still locked: ignore further wrong presses (no extra error spam)
       return;
     }
   } else {
-    // not locked: if matches expected, advance; else lock and record wrong char (single)
     if(key === expected){
       index++;
     } else {
-      // wrong char -> create lock and record exactly one wrong char
+      // create a lock and record single wrong
       isLocked = true;
       lockedWrongChar = key;
       errors++;
@@ -203,7 +619,7 @@ window.addEventListener('keydown', e=>{
   checkFinish();
 });
 
-/* Player metrics */
+/* player metrics */
 function computePlayerCPS(){
   if(!startTime) return 0;
   const now = performance.now();
@@ -217,22 +633,21 @@ function computePlayerWPM(){
   return Math.round((cps * 60) / 5);
 }
 
-/* AI */
+/* AI behavior */
 function updateAI(dt){
   const playerCps = computePlayerCPS() || 2.2;
-  const randFactor = 0.9 + Math.random()*0.3; // 0.9 - 1.2
+  const randFactor = 0.9 + Math.random()*0.3;
   const target = Math.max(0.5, playerCps * randFactor);
   const smoothing = 0.09;
   aiSpeedCPS += (target - aiSpeedCPS) * smoothing;
   aiIndex += aiSpeedCPS * dt;
-  // small chance of AI error per advanced char
   const approx = aiSpeedCPS * dt;
   for(let i=0;i<Math.floor(approx)+1;i++){
     if(Math.random() < 0.03) aiErrors++;
   }
 }
 
-/* DRAW */
+/* draw */
 function drawTrack(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle = '#071420'; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -264,8 +679,9 @@ function draw(){
   const range = FINISH_X - START_X - 40;
   const playerX = START_X + range * playerProg;
   const aiX = START_X + range * aiProg;
+  const playerCarColor = player.carColor || '#ff6b6b';
   drawCar(aiX, TRACK_Y[0]-4, '#6ba6ff','AI');
-  drawCar(playerX, TRACK_Y[1]-4, '#ff6b6b','YOU');
+  drawCar(playerX, TRACK_Y[1]-4, playerCarColor,'YOU');
   ctx.fillStyle = '#13243a'; ctx.fillRect(START_X, TRACK_Y[1] + 32, FINISH_X - START_X, 6);
   ctx.fillStyle = '#2be08a'; ctx.fillRect(START_X, TRACK_Y[1] + 32, (FINISH_X - START_X) * playerProg, 6);
   ctx.fillStyle = '#13243a'; ctx.fillRect(START_X, TRACK_Y[0] + 32, FINISH_X - START_X, 6);
@@ -274,91 +690,111 @@ function draw(){
   liveCps.innerText = computePlayerCPS().toFixed(2);
   liveWpm.innerText = computePlayerWPM();
   liveErrors.innerText = errors;
-  liveProgress.innerText = Math.round(playerProg*100) + '%';
+  liveCoins.innerText = player.coins;
 }
 
-/* DISPLAY PROMPT & TYPED */
+/* displays */
 function updateDisplays(){
   const correctText = escapeHtml(prompt.slice(0, index));
-  const nextChar = prompt.charAt(index) || '';
-  const remaining = escapeHtml(prompt.slice(index + (isLocked && !(!lockedWrongChar) ? 0 : 0))); // remaining shown after current expected char
-  // Show: correct portion, then either locked wrong char (red) or nothing, then rest (expected)
-  let lockedHtml = '';
-  if(isLocked && lockedWrongChar){
-    lockedHtml = `<span class="wrong">${escapeHtml(lockedWrongChar)}</span>`;
-  }
+  let lockedHtml = isLocked && lockedWrongChar ? `<span class="wrong">${escapeHtml(lockedWrongChar)}</span>` : '';
   typedLine.innerHTML = `<span class="correct">${correctText}</span>` + lockedHtml;
-  // expected line: show the upcoming expected char + remaining for clarity
-  expectedLine.innerHTML = escapeHtml(prompt.slice(index + (isLocked && !lockedWrongChar ? 0 : 0)));
+  expectedLine.innerText = prompt.slice(index + (isLocked ? 0 : 0));
 }
 
-/* FINISH CHECK & STATS */
+/* finish check & stats */
 function checkFinish(){
   if(index >= prompt.length && !finished){
     finished = true;
-    finishRace();
+    finishRace(true);
     return;
   }
   if(Math.floor(aiIndex) >= prompt.length && !finished){
     finished = true;
-    finishRace();
+    finishRace(false);
     return;
   }
 }
 
-function finishRace(){
+function finishRace(playerFinished){
   const end = performance.now();
   const elapsed = ((end - (startTime||end))/1000) || 0;
   const cps = (index / Math.max(elapsed, 0.0001));
   const wpm = Math.round((cps*60)/5);
   const accuracy = Math.round(100 * (Math.max(0,index - errors) / Math.max(1, index)));
   const winner = (index >= prompt.length && Math.floor(aiIndex) >= prompt.length) ? (index >= Math.floor(aiIndex) ? 'You' : 'AI') : (index >= prompt.length ? 'You' : 'AI');
+
+  // reward coins, xp, update player stats
+  const coinsEarned = Math.max(1, Math.floor(wpm/3) + (accuracy >= 90 ? 10 : 0));
+  player.coins += coinsEarned;
+  player.races += 1;
+  player.totalWpm += wpm;
+  if(wpm > player.bestWPM) player.bestWPM = wpm;
+  if(accuracy > player.bestAcc) player.bestAcc = accuracy;
+
+  // XP calculation: base on wpm and accuracy + small bonus for winning
+  const xpEarned = Math.max(5, Math.round(wpm * (accuracy/100) / 2) + (winner === 'You' ? 10 : 0));
+  grantXP(xpEarned);
+
+  // achievements check
+  checkAchievements({ wpm, accuracy, winner, errors });
+
+  // update displayed panel
+  updatePanelDisplays();
+
+  // prepare results modal
   showStatsModal({
     prompt,
     elapsed: elapsed.toFixed(2),
-    cps: cps.toFixed(2),
     wpm,
     errors,
-    aiErrors,
-    aiCps: aiSpeedCPS.toFixed(2),
     accuracy,
+    coinsEarned,
+    xpEarned,
     winner
   });
 }
 
-/* STATS MODAL */
-function showStatsModal(stats){
-  modalWrap.style.display = 'flex';
-  modalWrap.innerHTML = `
-    <div class="modal-backdrop" id="backdrop">
-      <div class="modal" role="dialog" aria-modal="true">
-        <h2>Race Results — ${escapeHtml(stats.winner)}</h2>
-        <div style="color:var(--muted);margin-top:6px">Prompt: "${escapeHtml(stats.prompt)}"</div>
-        <div class="grid">
-          <div><strong>Time</strong><div>${stats.elapsed} s</div></div>
-          <div><strong>WPM</strong><div>${stats.wpm}</div></div>
-          <div><strong>CPS (you)</strong><div>${stats.cps}</div></div>
-          <div><strong>CPS (AI)</strong><div>${stats.aiCps}</div></div>
-          <div><strong>Errors (you)</strong><div>${stats.errors}</div></div>
-          <div><strong>Errors (AI)</strong><div>${stats.aiErrors}</div></div>
-          <div><strong>Accuracy</strong><div>${stats.accuracy}%</div></div>
-          <div><strong>Winner</strong><div>${escapeHtml(stats.winner)}</div></div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button id="modalNew">New Race</button>
-          <button id="modalClose">Close</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.getElementById('modalNew').addEventListener('click', ()=>{
-    modalWrap.style.display = 'none';
-    newRace();
-  });
-  document.getElementById('modalClose').addEventListener('click', ()=>{ modalWrap.style.display = 'none'; });
+/* achievements check */
+function unlockAchievement(id){
+  if(player.achievements[id]) return false;
+  player.achievements[id] = true;
+  const ach = ACHIEVEMENTS.find(a=>a.id===id);
+  if(ach && ach.reward) player.coins += ach.reward;
+  savePlayer(); updatePanelDisplays(); buildAchievementsList(); buildShop();
+  return true;
+}
+function checkAchievements({ wpm, accuracy, winner, errors }){
+  if(errors === 0) unlockAchievement('no_errors');
+  if(wpm >= 100) unlockAchievement('fast_100wpm');
+  if(winner === 'You' && player.races === 1) unlockAchievement('first_win');
+  if(player.races >= 10) unlockAchievement('play_10');
+  if(accuracy === 100) unlockAchievement('perfect_accuracy');
 }
 
-/* MAIN LOOP */
+/* stats modal */
+function showStatsModal(s){
+  modalWrap.style.display = 'block';
+  modalWrap.innerHTML = `<div class="modal-backdrop"><div class="modal" role="dialog">
+    <h2>Race Results — ${escapeHtml(s.winner)}</h2>
+    <div style="color:var(--muted);margin-top:6px">Prompt: "${escapeHtml(prompt)}"</div>
+    <div class="grid">
+      <div><strong>Time</strong><div>${s.elapsed} s</div></div>
+      <div><strong>WPM</strong><div>${s.wpm}</div></div>
+      <div><strong>Errors</strong><div>${s.errors}</div></div>
+      <div><strong>Accuracy</strong><div>${s.accuracy}%</div></div>
+      <div><strong>Coins Earned</strong><div>${s.coinsEarned}</div></div>
+      <div><strong>XP Earned</strong><div>${s.xpEarned}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="modalNew">New Race</button>
+      <button id="modalClose">Close</button>
+    </div>
+  </div></div>`;
+  document.getElementById('modalNew').addEventListener('click', ()=>{ modalWrap.style.display='none'; newRace(); });
+  document.getElementById('modalClose').addEventListener('click', ()=>{ modalWrap.style.display='none'; });
+}
+
+/* main loop */
 let lastFrame = performance.now();
 function mainLoop(now){
   const dt = (now - lastFrame)/1000;
@@ -372,14 +808,24 @@ function mainLoop(now){
 }
 requestAnimationFrame(mainLoop);
 
-/* BUTTONS & UI */
+/* buttons */
 newBtn.addEventListener('click', ()=>{ newRace(); promptArea.focus(); });
 skipBtn.addEventListener('click', ()=>{ newRace(); promptArea.focus(); });
 randomToggle.addEventListener('click', ()=>{ randomPrompts = !randomPrompts; randomToggle.innerText = `Random Prompts: ${randomPrompts ? 'ON' : 'OFF'}`; });
 
-promptArea.addEventListener('click', ()=> promptArea.focus());
-promptArea.focus();
-updateDisplays();
+/* helper escape */
+function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* initial panel & lists */
+updatePanelDisplays();
+buildAchievementsList();
+buildShop();
+
+/* ensure pixel editor & palette visible */
+buildPixelEditor(); buildPalette();
+
+/* expose saving when tab closed */
+window.addEventListener('beforeunload', ()=> savePlayer());
 
 </script>
 </body>
