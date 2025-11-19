@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pixel Typing Racer</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:#121827;
+    --accent:#ff6b6b;
+    --track:#1c2233;
+    --text:#e6eef8;
+    --muted:#98a0b7;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family: "Segoe UI", Roboto, system-ui, -apple-system;}
+  .wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;}
+  h1{margin:0;font-size:20px;letter-spacing:1px}
+  .game {
+    width:920px;
+    max-width:95vw;
+    background:linear-gradient(180deg,#0f1724 0%, #0b1220 100%);
+    border:4px solid #0f1724;
+    padding:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.6);
+    border-radius:8px;
+    image-rendering:pixelated;
+  }
+
+  /* Canvas area (pixel look by using small internal resolution and CSS scale) */
+  .canvas-wrap{
+    background:linear-gradient(180deg,#0b1220,#07101a);
+    padding:12px;
+    border-radius:6px;
+    display:flex;
+    justify-content:center;
+  }
+
+  canvas{
+    width:880px; /* scaled up for pixel look */
+    height:200px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background:linear-gradient(180deg,#0d1320, #08101a);
+    border:2px solid rgba(255,255,255,0.03);
+    display:block;
+  }
+
+  .ui {
+    display:flex;
+    gap:12px;
+    margin-top:10px;
+    align-items:flex-start;
+  }
+
+  .left {
+    flex:1;
+  }
+
+  .prompt-box{
+    background:linear-gradient(180deg,#07101a,#0b1220);
+    border-radius:6px;
+    padding:10px;
+    border:2px solid rgba(255,255,255,0.03);
+    min-height:96px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    font-size:18px;
+    line-height:1.4;
+  }
+
+  .typed { display:block; margin-bottom:8px; white-space:pre-wrap; word-wrap:break-word; }
+  .expected { color:var(--muted); display:block; white-space:pre-wrap; }
+  .wrong { color:#ff5b5b; background: rgba(255,91,91,0.04); padding:0 2px; border-radius:2px; }
+  .correct { color:#c8ffc8; }
+
+  .controls { display:flex; gap:8px; margin-top:8px; }
+  button { background:#111827;color:var(--text);padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;}
+  button:active{transform:translateY(1px)}
+  .small { padding:6px 8px;font-size:14px }
+
+  .right {
+    width:260px;
+    min-width:200px;
+  }
+  .stats {
+    background:linear-gradient(180deg,#07101a,#091026);
+    border-radius:6px;
+    padding:10px;
+    border:2px solid rgba(255,255,255,0.03);
+    font-family: ui-monospace, "Roboto Mono", monospace;
+  }
+  .stat-line {display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+  .stat-line:last-child{border-bottom:0}
+
+  /* modal */
+  .modal-backdrop {
+    position:fixed;inset:0;background:linear-gradient(0deg, rgba(0,0,0,0.6), rgba(0,0,0,0.6));display:flex;align-items:center;justify-content:center;
+  }
+  .modal {
+    background: #08101a;padding:20px;border-radius:10px;border:2px solid rgba(255,255,255,0.04);width:min(720px,95vw);
+    box-shadow:0 12px 40px rgba(0,0,0,0.6);
+    font-family:ui-sans-serif, system-ui;
+  }
+  .modal h2{margin:0 0 8px 0}
+  .modal .grid { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .modal button{margin-top:12px}
+
+  .footer-note{margin-top:10px;color:var(--muted);font-size:13px}
+
+  @media (max-width:720px){
+    canvas{width:100%;height:180px}
+    .right{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <h1>Pixel Typing Racer</h1>
+    <div style="color:var(--muted);font-size:13px;">(no backspace • errors show red)</div>
+  </div>
+
+  <div class="game" id="gameRoot">
+    <div class="canvas-wrap">
+      <canvas id="raceCanvas" width="880" height="200"></canvas>
+    </div>
+
+    <div class="ui">
+      <div class="left">
+        <div class="prompt-box" id="promptBox" tabindex="0">
+          <div class="typed" id="typedDisplay"></div>
+          <div class="expected" id="expectedDisplay"></div>
+          <div class="controls">
+            <button id="newBtn" class="small">New Race</button>
+            <button id="skipBtn" class="small">Skip Prompt</button>
+            <button id="randomToggle" class="small">Random Prompts: ON</button>
+            <div style="flex:1"></div>
+            <div style="color:var(--muted);font-size:13px;" id="timerLabel">00:00</div>
+          </div>
+        </div>
+        <div class="footer-note">Type to drive. Backspace is disabled. Incorrect characters count as errors and are shown in red.</div>
+      </div>
+
+      <div class="right">
+        <div class="stats">
+          <div style="font-weight:700;margin-bottom:6px">Live Stats</div>
+          <div class="stat-line"><div>WPM</div><div id="liveWpm">0</div></div>
+          <div class="stat-line"><div>CPS</div><div id="liveCps">0</div></div>
+          <div class="stat-line"><div>Errors</div><div id="liveErrors">0</div></div>
+          <div class="stat-line"><div>Progress</div><div id="liveProgress">0%</div></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px">AI behavior: follows your recent speed with randomized fairness.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal (hidden initially) -->
+<div id="modalWrap" style="display:none"></div>
+
+<script>
+/* ========= Data / prompts ========= */
+const PROMPTS = [
+  "The steam from the kettle spelled out a secret message.",
+  "Moonlight painted silver stripes across the old barn roof.",
+  "He traded his umbrella for someone else's smile.",
+  "Tiny robots fixed the city's streetlights at dawn.",
+  "A lost letter hidden under the floorboards changed everything.",
+  "The bakery closed early when the dough refused to rise.",
+  "She kept a map of storms in the back of her notebook.",
+  "Paper boats carried whispered wishes down the gutter.",
+  "The piano knew the name of every late visitor.",
+  "A single sunflower grew through the pavement crack.",
+  "They found a photograph that was never taken.",
+  "Rain tasted like the last day of summer and freedom.",
+  "An old key hummed softly whenever birds gathered nearby.",
+  "The alley had its own set of rules and a tiny library.",
+  "A firefighter rescued a kitten who had ideas about ballet.",
+  "He planted clocks instead of seeds and waited for time to grow.",
+  "The train left without destination but full of postcards.",
+  "The cat had a favorite radio station and a stern opinion.",
+  "She collected sunsets and kept them in little glass jars.",
+  "The lighthouse blinked messages to ships and passing satellites."
+];
+
+/* ========= Canvas / drawing ========= */
+const canvas = document.getElementById('raceCanvas');
+const ctx = canvas.getContext('2d');
+// Pixel look: draw on canvas at actual resolution, CSS scales up; use crisp pixels.
+ctx.imageSmoothingEnabled = false;
+
+const TRACK_PADDING = 24;
+const TRACK_COUNT = 2;
+const TRACK_Y = [40, 120]; // two tracks for player (bottom?) and AI
+const FINISH_X = canvas.width - 48;
+const START_X = 48;
+
+/* ========= Game state ========= */
+let prompt = "";
+let typed = []; // array of chars typed by player (correct or wrong)
+let errors = 0;
+let startTime = null;
+let finished = false;
+let randomPrompts = true;
+
+let aiIndex = 0; // AI typed chars count (float for smoothness)
+let aiErrors = 0;
+let aiSpeedCPS = 3; // chars per second baseline
+let playerHistory = []; // recent cps samples for ai to follow
+
+/* UI refs */
+const typedDisplay = document.getElementById('typedDisplay');
+const expectedDisplay = document.getElementById('expectedDisplay');
+const liveWpm = document.getElementById('liveWpm');
+const liveCps = document.getElementById('liveCps');
+const liveErrors = document.getElementById('liveErrors');
+const liveProgress = document.getElementById('liveProgress');
+const timerLabel = document.getElementById('timerLabel');
+
+const newBtn = document.getElementById('newBtn');
+const skipBtn = document.getElementById('skipBtn');
+const randomToggle = document.getElementById('randomToggle');
+const modalWrap = document.getElementById('modalWrap');
+
+function pickPrompt(){
+  if(!randomPrompts){
+    // If deterministic, always pick index 0 (but still keep variety)
+    return PROMPTS[0];
+  }
+  return PROMPTS[Math.floor(Math.random()*PROMPTS.length)];
+}
+
+/* ========= Start / reset ========= */
+function newRace(){
+  prompt = pickPrompt();
+  typed = [];
+  errors = 0;
+  aiIndex = 0;
+  aiErrors = 0;
+  playerHistory = [];
+  finished = false;
+  startTime = performance.now();
+  modalWrap.style.display = 'none';
+  updateDisplays();
+}
+newRace();
+
+/* ========= Typing handling ========= */
+// Prevent backspace navigation
+window.addEventListener('keydown', e=>{
+  if(e.key === 'Backspace'){
+    e.preventDefault(); // no backspace allowed
+    return;
+  }
+  // Prevent default for space to avoid scrolling
+  if(e.code === 'Space') e.preventDefault();
+});
+
+window.addEventListener('keypress', e=>{
+  if(finished) return;
+  // Accept printable characters. ignore control keys.
+  const char = e.key;
+  // We'll accept Enter as newline if present in prompt; our prompts have no newlines.
+  if(char.length !== 1) return; 
+  // process key
+  const idx = typed.length;
+  const expectedChar = prompt[idx] || null;
+  if(expectedChar === null){
+    // already at end; ignore extra keys
+    return;
+  }
+  if(char === expectedChar){
+    typed.push({c:char, ok:true});
+  } else {
+    typed.push({c:char, ok:false});
+    errors++;
+  }
+  // record event time for cps calc
+  const now = performance.now();
+  recordSample(now);
+  // check finish
+  checkFinish();
+  updateDisplays();
+});
+
+function recordSample(now){
+  // store typed timestamps to compute recent CPS
+  playerHistory.push(now);
+  // keep only last 6 seconds of samples
+  while(playerHistory.length>0 && now - playerHistory[0] > 6000) playerHistory.shift();
+}
+
+function computePlayerCPS(){
+  if(!startTime) return 0;
+  // count chars typed in last X seconds
+  const now = performance.now();
+  const windowMs = 5000;
+  const cutoff = now - windowMs;
+  // We also track playerHistory timestamps
+  let recent = playerHistory.filter(t => t >= cutoff).length;
+  // cps = recent chars / seconds
+  return +(recent / (windowMs/1000) || 0);
+}
+
+function computeWPM(){
+  const cps = computePlayerCPS();
+  // WPM convention: 5 chars = 1 word
+  return Math.round((cps * 60) / 5);
+}
+
+/* ========= AI behavior ========= */
+let lastAiUpdate = performance.now();
+function updateAI(dtSec){
+  // AI target CPS attempts to follow player's recent CPS with smoothing and some randomness.
+  const playerCps = computePlayerCPS() || 2.2; // reasonable default
+  // create randomized fairness: ai target = playerCps * factor where factor drifts slowly toward 1
+  // Add slight randomness so it's not perfect; also add baseline min cps
+  const randFactor = 0.88 + Math.random() * 0.24; // 0.88 - 1.12
+  const target = Math.max(0.5, playerCps * randFactor);
+  // Smooth aiSpeedCPS towards target
+  const smoothing = 0.08; // smaller -> slower smoothing
+  aiSpeedCPS += (target - aiSpeedCPS) * smoothing;
+  // then advance aiIndex by aiSpeedCPS * dtSec
+  aiIndex += aiSpeedCPS * dtSec;
+  // Simulate AI errors: small chance per char
+  // We'll approximate expected full chars advanced this frame
+  const approxAdvanced = aiSpeedCPS * dtSec;
+  for(let i=0;i<Math.floor(approxAdvanced);i++){
+    const charIdx = Math.floor(aiIndex) - i - 1;
+    if(charIdx >= 0 && charIdx < prompt.length){
+      // chance of error slightly tied to player's errors to keep fairness
+      if(Math.random() < 0.04 + (errors / Math.max(1, typed.length)) * 0.04){
+        aiErrors++;
+        // no backspacing - AI also doesn't backspace, so error counts but ai still moves on
+      }
+    }
+  }
+}
+
+/* ========= Render loop ========= */
+function draw(){
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // background / gradient already CSS; draw tracks
+  for(let i=0;i<TRACK_COUNT;i++){
+    const y = TRACK_Y[i];
+    // track base
+    ctx.fillStyle = '#0e1628';
+    ctx.fillRect(START_X-16, y-14, FINISH_X - START_X + 32, 44);
+    // dashed finish area lines
+    ctx.fillStyle = '#152033';
+    for(let x=START_X; x<FINISH_X; x+=24){
+      ctx.fillRect(x, y-12, 12, 2);
+    }
+  }
+
+  // finish line
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(FINISH_X, 20, 4, canvas.height-40);
+  // finish flag stripes
+  for(let i=0;i<8;i++){
+    ctx.fillStyle = (i%2===0) ? '#000' : '#fff';
+    ctx.fillRect(FINISH_X+6, 28 + i*18, 10, 10);
+  }
+
+  // compute progress (player)
+  const playerProgress = Math.min(1, typed.length / Math.max(1, prompt.length));
+  const aiProgress = Math.min(1, (aiIndex) / Math.max(1, prompt.length));
+
+  // draw cars (pixel style)
+  drawCar(START_X + (FINISH_X-START_X - 12) * aiProgress, TRACK_Y[0], 'AI');
+  drawCar(START_X + (FINISH_X-START_X - 12) * playerProgress, TRACK_Y[1], 'YOU');
+
+  // HUD labels
+  ctx.fillStyle = '#9fb2ff';
+  ctx.font = '12px monospace';
+  ctx.fillText('AI', START_X - 24, TRACK_Y[0] + 4);
+  ctx.fillText('YOU', START_X - 30, TRACK_Y[1] + 4);
+
+  // small progress bars
+  ctx.fillStyle = '#20304a';
+  ctx.fillRect(START_X, TRACK_Y[1] + 30, FINISH_X - START_X, 6);
+  ctx.fillStyle = '#3bd671';
+  ctx.fillRect(START_X, TRACK_Y[1] + 30, (FINISH_X-START_X) * playerProgress, 6);
+  ctx.fillStyle = '#20304a';
+  ctx.fillRect(START_X, TRACK_Y[0] + 30, FINISH_X - START_X, 6);
+  ctx.fillStyle = '#6ba6ff';
+  ctx.fillRect(START_X, TRACK_Y[0] + 30, (FINISH_X-START_X) * aiProgress, 6);
+
+  // finished marker text
+  if(finished){
+    ctx.fillStyle = '#ffd66b';
+    ctx.font = '18px monospace';
+    ctx.fillText('RACE FINISHED', canvas.width/2 - 70, 28);
+  }
+
+  // update UI live stats
+  const now = performance.now();
+  const elapsed = Math.max(0, (now - startTime) / 1000);
+  const cps = computePlayerCPS();
+  liveCps.innerText = cps.toFixed(2);
+  liveWpm.innerText = computeWPM();
+  liveErrors.innerText = errors;
+  liveProgress.innerText = Math.round(playerProgress*100) + '%';
+  timerLabel.innerText = formatTime(elapsed);
+
+  // request next frame
+  if(!finished) requestAnimationFrame(draw);
+}
+
+/* helper drawCar draws a simple blocky pixel car */
+function drawCar(x,y,label){
+  // draw shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(x+2, y+18, 36, 6);
+
+  // body
+  if(label === 'YOU') ctx.fillStyle = '#ff6b6b';
+  else ctx.fillStyle = '#6ba6ff';
+  // base rectangle (pixel style)
+  ctx.fillRect(x, y, 36, 16);
+  // top cabin
+  ctx.fillRect(x+6, y-6, 20, 10);
+  // wheels
+  ctx.fillStyle = '#101010';
+  ctx.fillRect(x+4, y+14, 8, 6);
+  ctx.fillRect(x+24, y+14, 8, 6);
+  // windows (lighter)
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(x+8, y-4, 8, 6);
+  ctx.fillRect(x+18, y-4, 6, 6);
+
+  // label
+  ctx.fillStyle = '#0b1220';
+  ctx.font = '10px monospace';
+  ctx.fillText(label, x+8, y+12);
+}
+
+/* ========= Display prompt & typed ========= */
+function updateDisplays(){
+  // typedDisplay shows spans with classes
+  typedDisplay.innerHTML = typed.map(t => {
+    if(t.ok) return `<span class="correct">${escapeHtml(t.c)}</span>`;
+    else return `<span class="wrong">${escapeHtml(t.c)}</span>`;
+  }).join('');
+  const nextIdx = typed.length;
+  const remaining = prompt.slice(nextIdx);
+  expectedDisplay.innerHTML = `<span style="opacity:0.85">${escapeHtml(remaining)}</span>`;
+}
+
+/* ========= Finish detection & stats ========= */
+function checkFinish(){
+  // player finish
+  if(typed.length >= prompt.length && !finished){
+    finished = true;
+    finishTime();
+    return;
+  }
+  // AI finish
+  if(Math.floor(aiIndex) >= prompt.length && !finished){
+    finished = true;
+    finishTime();
+    return;
+  }
+}
+
+function finishTime(){
+  // stop drawing loop on next tick by marking finished. But we still render final frame.
+  // Determine winner
+  const playerCompleted = typed.length >= prompt.length;
+  const aiCompleted = Math.floor(aiIndex) >= prompt.length;
+  const endTime = performance.now();
+  const elapsed = (endTime - startTime)/1000;
+  const cps = Math.max(0.001, (typed.length) / elapsed);
+  const wpm = Math.round((cps * 60) / 5);
+  const accuracy = Math.round(100 * ((typed.length - errors) / Math.max(1, typed.length)));
+  let winner = 'Nobody';
+  if(playerCompleted && !aiCompleted) winner = 'You';
+  else if(aiCompleted && !playerCompleted) winner = 'AI';
+  else if(playerCompleted && aiCompleted){
+    // tie-break by who finished first (approx)
+    // estimate AI finish time
+    // approximate AI finish time = start + (prompt.length / ai average speed)
+    winner = (typed.length / Math.max(1, cps)) < (prompt.length / Math.max(1, aiSpeedCPS)) ? 'You' : 'AI';
+  } else {
+    winner = (typed.length / prompt.length) > (aiIndex / prompt.length) ? 'You (closer)' : 'AI (closer)';
+  }
+  // show modal with stats
+  showStatsModal({
+    prompt,
+    elapsed: elapsed.toFixed(2),
+    cps: cps.toFixed(2),
+    wpm,
+    errors,
+    accuracy,
+    aiErrors,
+    aiCps: aiSpeedCPS.toFixed(2),
+    winner
+  });
+  // final draw call
+  draw();
+}
+
+/* Modal */
+function showStatsModal(stats){
+  modalWrap.style.display = 'flex';
+  modalWrap.innerHTML = `
+    <div class="modal-backdrop" id="backdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <h2>Race Results — ${escapeHtml(stats.winner)}</h2>
+        <div style="color:var(--muted);margin-bottom:8px">Prompt: "${escapeHtml(stats.prompt)}"</div>
+        <div class="grid">
+          <div><strong>Time</strong><div>${stats.elapsed} s</div></div>
+          <div><strong>WPM</strong><div>${stats.wpm}</div></div>
+          <div><strong>CPS (you)</strong><div>${stats.cps}</div></div>
+          <div><strong>CPS (AI)</strong><div>${stats.aiCps}</div></div>
+          <div><strong>Errors (you)</strong><div>${stats.errors}</div></div>
+          <div><strong>Errors (AI)</strong><div>${stats.aiErrors}</div></div>
+          <div><strong>Accuracy</strong><div>${stats.accuracy}%</div></div>
+          <div><strong>Winner</strong><div>${escapeHtml(stats.winner)}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="modalNew">New Race</button>
+          <button id="modalClose">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalNew').addEventListener('click', ()=>{
+    modalWrap.style.display='none';
+    newRace();
+    // restart the draw loop
+    if(!finished) requestAnimationFrame(draw);
+  });
+  document.getElementById('modalClose').addEventListener('click', ()=>{
+    modalWrap.style.display='none';
+  });
+}
+
+/* ========= Utilities ========= */
+function escapeHtml(s){ return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatTime(sec){
+  const s = Math.floor(sec%60).toString().padStart(2,'0');
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+/* ========= Inputs / buttons ========= */
+newBtn.addEventListener('click', ()=>{
+  newRace();
+  // focus prompt box for immediate typing
+  document.getElementById('promptBox').focus();
+  requestAnimationFrame(draw);
+});
+skipBtn.addEventListener('click', ()=>{
+  newRace();
+  requestAnimationFrame(draw);
+});
+randomToggle.addEventListener('click', ()=>{
+  randomPrompts = !randomPrompts;
+  randomToggle.innerText = `Random Prompts: ${randomPrompts? 'ON' : 'OFF'}`;
+});
+
+/* ========= Main loop timing ========= */
+let lastFrame = performance.now();
+function tick(now){
+  const dt = (now - lastFrame)/1000;
+  lastFrame = now;
+  if(!finished){
+    updateAI(dt);
+    checkFinish();
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+requestAnimationFrame(draw);
+
+/* focus prompt */
+document.getElementById('promptBox').addEventListener('click', ()=>document.getElementById('promptBox').focus());
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && !finished) requestAnimationFrame(draw); });
+
+/* init display & focus */
+updateDisplays();
+document.getElementById('promptBox').focus();
+
+</script>
+</body>
+</html>
