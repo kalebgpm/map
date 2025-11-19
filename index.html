@@ -1,383 +1,465 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Single-file React Portfolio</title>
-  <!-- Tailwind via CDN (works without build) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Inter font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
-    /* spotlight follows mouse instantly */
-    .spotlight {
-      position: absolute;
-      pointer-events: none;
-      width: 200px;
-      height: 120px;
-      background: radial-gradient(ellipse at center, rgba(255,255,255,0.18), rgba(255,255,255,0) 40%);
-      transform: translate(-50%, -50%);
-      transition: none; /* instant follow */
-      filter: blur(16px);
-      mix-blend-mode: screen;
-    }
-    /* modal enter */
-    .modal-enter { opacity: 0; transform: translateY(8px); }
-    .modal-enter-active { opacity: 1; transform: translateY(0); transition: all 240ms ease-out; }
-
-    /* extra responsive fine-tuning for very small screens (iPhone 13 mini width ~375px) */
-    @media (max-width: 400px) {
-      .root-padding { padding: 12px; }
-      .preview-box { width: 140px; height: 100px; }
-      .project-card-img { width: 60px; height: 44px; }
-      .modal-inner { padding: 12px; }
-      .modal-gallery { max-height: 50vh; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pixel Typing Racer — Error Queue</title>
+<style>
+  :root{
+    --bg:#0b0f16;
+    --panel:#0f1724;
+    --muted:#9aa7d1;
+    --good:#6bf59a;
+    --bad:#ff6b6b;
+    --accent:#ffd66b;
+  }
+  html,body{height:100%;margin:0;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;background:var(--bg);color:#e6eef8}
+  .wrap{max-width:980px;margin:18px auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+  h1{margin:0;font-size:20px}
+  .game {background:linear-gradient(180deg,#07101a,#081827);padding:12px;border-radius:8px;border:2px solid rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(0,0,0,0.7)}
+  .canvas-wrap{background:linear-gradient(180deg,#061019,#07121a);padding:10px;border-radius:6px;display:flex;justify-content:center}
+  canvas{width:920px;height:220px;background:linear-gradient(180deg,#07121c,#041018);image-rendering:pixelated;border:2px solid rgba(255,255,255,0.03)}
+  .controls{display:flex;gap:8px;align-items:center;margin-top:10px}
+  button{background:#0e1724;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:8px 10px;border-radius:6px;cursor:pointer}
+  .prompt-area{margin-top:12px;background:linear-gradient(180deg,#08121b,#06101a);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.02)}
+  .typed-line{font-size:18px;min-height:28px}
+  .expected-line{font-size:16px;color:var(--muted);margin-top:6px}
+  .wrong { color: var(--bad); background: rgba(255,90,90,0.04); padding:0 2px; border-radius:2px;}
+  .correct { color: var(--good); }
+  .stats-box{margin-left:auto;color:var(--muted);font-size:13px}
+  .live-stats{display:flex;gap:10px;align-items:center}
+  .small-muted{color:var(--muted);font-size:12px}
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,12,0.6);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#06101a;padding:20px;border-radius:10px;border:2px solid rgba(255,255,255,0.04);width:min(720px,92vw);color:#eaf0ff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .modal button{margin-top:12px}
+  @media(max-width:760px){
+    canvas{width:100%;height:200px}
+    .stats-box{display:none}
+  }
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-6">
-  <div id="root" class="w-full max-w-6xl"></div>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:12px">
+    <h1>Pixel Typing Racer</h1>
+    <div class="small-muted">Type to drive — errors queue in red (no backspace). Spacebar works.</div>
+  </div>
 
-  <!-- React + ReactDOM + Babel for JSX in-browser -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <div class="game">
+    <div class="canvas-wrap">
+      <canvas id="raceCanvas" width="880" height="200"></canvas>
+    </div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-
-    // Replace these placeholder strings with your own image URLs when ready.
-    const PROJECTS = [
-      {
-        id: 'p1',
-        title: 'Acoustic Sessions Promo',
-        tags: ['Design','React'],
-        img: 'YOUR_MAIN_PREVIEW_IMAGE_1', // paste your main preview image URL here
-        description: 'Landing page and RSVP flow for live acoustic events.',
-        subtabs: [
-          { title: 'Session 1', gallery: ['YOUR_IMAGE_1A','YOUR_IMAGE_1B'], text: 'Notes for Session 1.' },
-          { title: 'Session 2', gallery: ['YOUR_IMAGE_2A','YOUR_IMAGE_2B'], text: 'Notes for Session 2.' },
-          { title: 'Session 3', gallery: ['YOUR_IMAGE_3A','YOUR_IMAGE_3B'], text: 'Notes for Session 3.' },
-          { title: 'Session 4', gallery: ['YOUR_IMAGE_4A','YOUR_IMAGE_4B'], text: 'Notes for Session 4.' },
-          { title: 'Session 5', gallery: ['YOUR_IMAGE_5A','YOUR_IMAGE_5B'], text: 'Notes for Session 5.' },
-          { title: 'Session 6', gallery: ['YOUR_IMAGE_6A','YOUR_IMAGE_6B'], text: 'Notes for Session 6.' }
-        ]
-      },
-      {
-        id: 'p2',
-        title: 'Storefront Promo Kit',
-        tags: ['Marketing','Email'],
-        img: 'YOUR_MAIN_PREVIEW_IMAGE_2',
-        description: 'Promotional assets and store page banners.',
-        subtabs: [
-          { title: 'Asset 1', gallery: ['YOUR_IMAGE_A1'], text: 'Copy and usage instructions.' },
-          { title: 'Asset 2', gallery: ['YOUR_IMAGE_A2'], text: 'Copy and usage instructions.' },
-          { title: 'Asset 3', gallery: ['YOUR_IMAGE_A3'], text: 'Copy and usage instructions.' },
-          { title: 'Asset 4', gallery: ['YOUR_IMAGE_A4'], text: 'Copy and usage instructions.' }
-        ]
-      },
-      {
-        id: 'p3',
-        title: 'Wedding Booking Flow',
-        tags: ['UX','Forms'],
-        img: 'YOUR_MAIN_PREVIEW_IMAGE_3',
-        description: 'Booking microsite with calendar integration.',
-        subtabs: [
-          { title: 'Overview', gallery: ['YOUR_IMAGE_W1'], text: 'Overview of booking flow.' },
-          { title: 'Calendar', gallery: ['YOUR_IMAGE_W2'], text: 'Calendar integration details.' },
-          { title: 'Pricing', gallery: ['YOUR_IMAGE_W3'], text: 'Pricing & discounts.' }
-        ]
-      }
-    ];
-
-    function Icon({ name, className='' }){
-      const common = 'inline-block align-middle';
-      if(name === 'projects') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>);
-      if(name === 'about') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>);
-      if(name === 'contact') return (<svg className={`${common} ${className}`} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v1"></path><rect x="3" y="8" width="18" height="13" rx="2"></rect></svg>);
-      return null;
-    }
-
-    function TabButton({ id, label, active, onClick, icon }){
-      return (
-        <button onClick={() => onClick(id)}
-          className={`px-3 py-2 rounded-md transition-all duration-200 flex items-center gap-2 ${active ? 'bg-white/10 ring-1 ring-white/10 backdrop-blur-sm' : 'hover:bg-white/5'}`}>
-          <Icon name={icon} className="text-slate-100/90" />
-          <span className="text-sm font-medium">{label}</span>
-        </button>
-      );
-    }
-
-    function ProjectCard({ project, onHover, onOpen }){
-      const hasImg = !!project.img;
-      return (
-        <div
-          onClick={()=>onOpen(project)}
-          onMouseMove={e => onHover(e, project.id)}
-          onMouseLeave={() => onHover(null, null)}
-          onTouchStart={e => onHover(e, project.id)}
-          onTouchEnd={() => onHover(null, null)}
-          className="cursor-pointer relative group bg-slate-800/30 border border-white/6 rounded-2xl p-4 flex gap-4 items-start transition-transform transform hover:-translate-y-1 hover:scale-[1.01] shadow-lg">
-
-          <div className="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center project-card-img">
-            {hasImg ? (
-              <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="text-slate-400 text-xs text-center px-2">No preview<br/>available</div>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold">{project.title}</h3>
-                <p className="text-slate-300 text-xs sm:text-sm mt-1">{project.description}</p>
-              </div>
-              <div className="text-xs text-slate-400">{project.tags.join(' • ')}</div>
-            </div>
-          </div>
+    <div class="controls">
+      <button id="newBtn">New Race</button>
+      <button id="skipBtn">Skip Prompt</button>
+      <button id="randomToggle">Random Prompts: ON</button>
+      <div class="stats-box">
+        <div class="live-stats">
+          <div>WPM: <strong id="liveWpm">0</strong></div>
+          <div>CPS: <strong id="liveCps">0.00</strong></div>
+          <div>Errors: <strong id="liveErrors">0</strong></div>
+          <div>Progress: <strong id="liveProgress">0%</strong></div>
         </div>
-      );
+        <div class="small-muted">AI follows your recent speed with randomness.</div>
+      </div>
+    </div>
+
+    <div class="prompt-area" tabindex="0" id="promptArea">
+      <div class="typed-line" id="typedLine"></div>
+      <div class="expected-line" id="expectedLine"></div>
+      <div style="margin-top:8px" class="small-muted">No backspace. Wrong characters shown red (queued). Car only moves when the next character is typed correctly.</div>
+    </div>
+  </div>
+</div>
+
+<div id="modalWrap" style="display:none"></div>
+
+<script>
+/* ======= PROMPTS ======= */
+const PROMPTS = [
+  "The steam from the kettle spelled out a secret message.",
+  "Moonlight painted silver stripes across the old barn roof.",
+  "He traded his umbrella for someone else's smile.",
+  "Tiny robots fixed the city's streetlights at dawn.",
+  "A lost letter hidden under the floorboards changed everything.",
+  "The bakery closed early when the dough refused to rise.",
+  "She kept a map of storms in the back of her notebook.",
+  "Paper boats carried whispered wishes down the gutter.",
+  "The piano knew the name of every late visitor.",
+  "A single sunflower grew through the pavement crack.",
+  "They found a photograph that was never taken.",
+  "Rain tasted like the last day of summer and freedom.",
+  "An old key hummed softly whenever birds gathered nearby.",
+  "The alley had its own set of rules and a tiny library.",
+  "A firefighter rescued a kitten who had ideas about ballet.",
+  "He planted clocks instead of seeds and waited for time to grow.",
+  "The train left without destination but full of postcards.",
+  "The cat had a favorite radio station and a stern opinion.",
+  "She collected sunsets and kept them in little glass jars.",
+  "The lighthouse blinked messages to ships and passing satellites."
+];
+
+/* ======= CANVAS & DRAWING ======= */
+const canvas = document.getElementById('raceCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const START_X = 48;
+const FINISH_X = canvas.width - 64;
+const TRACK_Y = [44, 118]; // AI at top (0), Player at bottom (1)
+
+/* ======= UI Refs ======= */
+const typedLine = document.getElementById('typedLine');
+const expectedLine = document.getElementById('expectedLine');
+const liveWpm = document.getElementById('liveWpm');
+const liveCps = document.getElementById('liveCps');
+const liveErrors = document.getElementById('liveErrors');
+const liveProgress = document.getElementById('liveProgress');
+const newBtn = document.getElementById('newBtn');
+const skipBtn = document.getElementById('skipBtn');
+const randomToggle = document.getElementById('randomToggle');
+const promptArea = document.getElementById('promptArea');
+const modalWrap = document.getElementById('modalWrap');
+
+/* ======= GAME STATE ======= */
+let randomPrompts = true;
+let prompt = "";
+let index = 0;             // how many correct characters player has advanced (progress)
+let errorQueue = "";       // queued wrong characters shown in red (Option C)
+let errors = 0;            // total wrong chars typed by player
+let startTime = null;
+let finished = false;
+
+/* AI state */
+let aiIndex = 0;           // float progress (chars)
+let aiErrors = 0;
+let aiSpeedCPS = 2.2;     // current ai speed (chars per second)
+let playerTimestamps = []; // timestamps of player's typed events for recent cps
+
+/* ======= UTIL ======= */
+function pickPrompt(){
+  if(!randomPrompts) return PROMPTS[0];
+  return PROMPTS[Math.floor(Math.random()*PROMPTS.length)];
+}
+function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatTime(sec){ const m = Math.floor(sec/60).toString().padStart(2,'0'); const s = Math.floor(sec%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+
+/* ======= RESET / NEW RACE ======= */
+function newRace(){
+  prompt = pickPrompt();
+  index = 0;
+  errorQueue = "";
+  errors = 0;
+  aiIndex = 0;
+  aiErrors = 0;
+  playerTimestamps = [];
+  startTime = null;
+  finished = false;
+  aiSpeedCPS = 2.2 + Math.random()*0.8; // baseline
+  modalWrap.style.display = 'none';
+  updateDisplays();
+  requestAnimationFrame(draw); // fresh draw
+}
+newRace();
+
+/* ======= INPUT HANDLING ======= */
+// prevent backspace default navigation & disable backspace functionality
+window.addEventListener('keydown', e=>{
+  if(e.key === 'Backspace'){ e.preventDefault(); return; }
+  // allow space default to not scroll the page
+  if(e.code === 'Space') e.preventDefault();
+});
+
+// handle printable keystrokes including space
+window.addEventListener('keypress', e=>{
+  if(finished) return;
+  // start timer on first keypress
+  if(!startTime) startTime = performance.now();
+
+  const ch = e.key; // includes space as ' '
+  // ignore non-printable
+  if(ch.length !== 1) return;
+
+  // Record timestamp for player's CPS smoothing
+  const now = performance.now();
+  playerTimestamps.push(now);
+  // prune old samples (keep last 6s)
+  const cutoff = now - 6000;
+  while(playerTimestamps.length && playerTimestamps[0] < cutoff) playerTimestamps.shift();
+
+  // If the typed char matches the next required char -> advance
+  const expected = prompt.charAt(index);
+  if(ch === expected){
+    index++;
+    // advance car; correct char consumes nothing from errorQueue (errorQueue remains displayed but does not block)
+    // We might clear queued errors when a correct char typed? No — per Option C they persist as queue (visual noise).
+  } else {
+    // Wrong char -> add to errorQueue (does NOT advance index)
+    errorQueue += ch;
+    errors++;
+  }
+
+  updateDisplays();
+  checkFinish();
+});
+
+/* ======= PLAYER METRICS ======= */
+function computePlayerCPS(){
+  if(!startTime) return 0;
+  const now = performance.now();
+  const windowMs = 4000; // 4-second window for responsiveness
+  const cutoff = now - windowMs;
+  const recent = playerTimestamps.filter(t => t >= cutoff).length;
+  return recent / (windowMs / 1000);
+}
+function computePlayerWPM(){
+  const cps = computePlayerCPS();
+  return Math.round((cps * 60) / 5);
+}
+
+/* ======= AI Behaviour ======= */
+let lastAiTick = performance.now();
+function updateAI(dt){
+  // target based on player's recent cps with randomness
+  const playerCps = computePlayerCPS() || 2.2;
+  const randFactor = 0.88 + Math.random()*0.28; // 0.88 - 1.16
+  const target = Math.max(0.5, playerCps * randFactor);
+  // smooth AI speed (so it doesn't jitter too hard)
+  const smooth = 0.09;
+  aiSpeedCPS += (target - aiSpeedCPS) * smooth;
+  // advance AI progress
+  aiIndex += aiSpeedCPS * dt;
+  // simulate occasional AI errors (won't block it since AI doesn't backspace)
+  const approxCharsAdvanced = aiSpeedCPS * dt;
+  const chancePerChar = 0.04; // baseline
+  for(let i=0;i<Math.floor(approxCharsAdvanced)+1;i++){
+    if(Math.random() < chancePerChar) aiErrors++;
+  }
+}
+
+/* ======= RENDERING ======= */
+function drawTrack(){
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw background stripes and tracks
+  ctx.fillStyle = '#071420';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // tracks
+  for(let t=0;t<2;t++){
+    const y = TRACK_Y[t];
+    ctx.fillStyle = '#0d2236';
+    ctx.fillRect(START_X-16, y-18, FINISH_X - START_X + 32, 44);
+    // dashed markers for pixel look
+    for(let x=START_X; x<FINISH_X; x+=20){
+      ctx.fillStyle = (x%40===0)? '#17324a' : '#0f2a40';
+      ctx.fillRect(x, y-12, 12, 2);
     }
+  }
 
-    function SubTabModal({ open, project, onClose }){
-      const [activeIdx, setActiveIdx] = useState(0);
-      const activeSub = (project?.subtabs && project.subtabs[activeIdx]) || null;
-      const timerRef = useRef(null);
+  // finish line
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(FINISH_X, 18, 6, canvas.height-36);
+  // checker flag squares
+  for(let i=0;i<8;i++){
+    ctx.fillStyle = (i%2===0)? '#000' : '#fff';
+    ctx.fillRect(FINISH_X+8, 22 + i*18, 12, 12);
+  }
+}
 
-      useEffect(()=>{
-        if(!open) return;
-        // auto-advance every 5 seconds
-        timerRef.current = setInterval(()=>{
-          const len = (project?.subtabs?.length) || 0;
-          if(len === 0) return;
-          setActiveIdx(i => (i+1) % len);
-        }, 5000);
-        return ()=> clearInterval(timerRef.current);
-      }, [open, project]);
+function drawCar(x, y, colorLabel, label){
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(x+2, y+20, 40, 8);
 
-      if(!open || !project) return null;
+  // body
+  ctx.fillStyle = colorLabel;
+  ctx.fillRect(x, y, 40, 18);
+  // cabin
+  ctx.fillRect(x+8, y-8, 24, 10);
+  // wheels
+  ctx.fillStyle = '#0b0b0b';
+  ctx.fillRect(x+4, y+16, 8, 6);
+  ctx.fillRect(x+28, y+16, 8, 6);
+  // window
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(x+12, y-6, 8, 6);
+  ctx.fillRect(x+22, y-6, 6, 6);
+  // label
+  ctx.fillStyle = '#08101a';
+  ctx.font = '10px monospace';
+  ctx.fillText(label, x+6, y+12);
+}
 
-      const subtabs = project.subtabs || [];
+function draw(){
+  drawTrack();
 
-      return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* backdrop blocks interaction and blurs background via css on root */}
-          <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
+  // compute progresses (0..1)
+  const playerProg = Math.min(1, index / Math.max(1, prompt.length));
+  const aiProg = Math.min(1, aiIndex / Math.max(1, prompt.length));
 
-          <div className="relative z-50 w-full max-w-3xl mx-4 modal-enter-active">
-            <div className="bg-slate-900/95 rounded-3xl p-6 border border-white/10 shadow-2xl modal-inner">
-              <button onClick={onClose} className="absolute top-4 right-4 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 text-sm">Back</button>
-              <h2 className="text-lg sm:text-xl font-bold mb-4">{project.title}</h2>
+  const range = FINISH_X - START_X - 40;
+  const playerX = START_X + range * playerProg;
+  const aiX = START_X + range * aiProg;
 
-              <div className="flex flex-col gap-4 modal-gallery">
-                {/* Left (gallery) stacked above on small screens */}
-                <div className="w-full bg-slate-800/40 rounded-xl p-2 max-h-[60vh] overflow-auto flex items-center justify-center">
-                  {activeSub && activeSub.gallery && activeSub.gallery.length > 0 ? (
-                    <img src={activeSub.gallery[0]} alt={activeSub.title} className="w-full h-auto object-cover rounded-md" />
-                  ) : (
-                    <div className="text-slate-400 text-sm">No images for this subtab.</div>
-                  )}
-                </div>
+  drawCar(aiX, TRACK_Y[0]-4, '#6ba6ff', 'AI');
+  drawCar(playerX, TRACK_Y[1]-4, '#ff6b6b', 'YOU');
 
-                {/* Right: text + thumbnails become stacked below on small screens */}
-                <div className="flex flex-col gap-3">
-                  <div className="bg-slate-800/30 rounded-xl p-4 text-slate-200 text-sm whitespace-pre-line overflow-auto">
-                    {activeSub?.text || 'No description available.'}
-                  </div>
+  // small progress bars
+  ctx.fillStyle = '#13243a';
+  ctx.fillRect(START_X, TRACK_Y[1] + 32, FINISH_X - START_X, 6);
+  ctx.fillStyle = '#2be08a';
+  ctx.fillRect(START_X, TRACK_Y[1] + 32, (FINISH_X - START_X) * playerProg, 6);
+  ctx.fillStyle = '#13243a';
+  ctx.fillRect(START_X, TRACK_Y[0] + 32, FINISH_X - START_X, 6);
+  ctx.fillStyle = '#6ba6ff';
+  ctx.fillRect(START_X, TRACK_Y[0] + 32, (FINISH_X - START_X) * aiProg, 6);
 
-                  <div className="flex gap-2 overflow-x-auto">
-                    {Array.from({length:6}).map((_,i)=>{
-                      const st = subtabs[i];
-                      return (
-                        <button key={i} onClick={()=>setActiveIdx(i)} className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border ${i===activeIdx? 'ring-2 ring-amber-400':'border-white/6'} bg-slate-700/40`}>
-                          {st && st.gallery && st.gallery[0] ? (
-                            <img src={st.gallery[0]} alt={st.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">{st? st.title : 'Empty'}</div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+  // HUD
+  ctx.fillStyle = '#9fb2ff';
+  ctx.font = '12px monospace';
+  ctx.fillText('AI', START_X-28, TRACK_Y[0]+4);
+  ctx.fillText('YOU', START_X-34, TRACK_Y[1]+4);
+
+  // finished display if needed
+  if(finished){
+    ctx.fillStyle = '#ffd66b';
+    ctx.font = '18px monospace';
+    ctx.fillText('RACE FINISHED', canvas.width/2 - 72, 28);
+  }
+
+  // update live stats in UI
+  liveCps.innerText = computePlayerCPS().toFixed(2);
+  liveWpm.innerText = computePlayerWPM();
+  liveErrors.innerText = errors;
+  liveProgress.innerText = Math.round(playerProg*100) + '%';
+}
+
+/* ======= DISPLAY PROMPT & TYPED ======= */
+function updateDisplays(){
+  // typed correct segment (green)
+  const correctText = escapeHtml(prompt.slice(0, index));
+  const correctHtml = `<span class="correct">${correctText}</span>`;
+  // errorQueue rendered in red (queued)
+  const wrongHtml = errorQueue ? `<span class="wrong">${escapeHtml(errorQueue)}</span>` : '';
+  typedLine.innerHTML = correctHtml + wrongHtml;
+  expectedLine.innerText = prompt.slice(index);
+}
+
+/* ======= FINISH CHECK & STATS ======= */
+function checkFinish(){
+  // player finish
+  if(index >= prompt.length && !finished){
+    finished = true;
+    finishRace('You');
+    return;
+  }
+  // ai finish
+  if(Math.floor(aiIndex) >= prompt.length && !finished){
+    finished = true;
+    finishRace('AI');
+    return;
+  }
+}
+
+function finishRace(winnerGuess){
+  const end = performance.now();
+  const elapsed = ((end - (startTime||end))/1000) || 0;
+  const cps = (index / Math.max(elapsed, 0.0001));
+  const wpm = Math.round((cps*60)/5);
+  const accuracy = Math.round(100 * ((Math.max(0,index - errors)) / Math.max(1, index + (errorQueue.length))));
+  const winner = (index >= prompt.length && Math.floor(aiIndex) >= prompt.length) ? (index/ (index + 0.0001) >= aiIndex/(aiIndex+0.0001) ? 'You' : 'AI') : (index >= prompt.length ? 'You' : 'AI');
+
+  showStatsModal({
+    prompt,
+    elapsed: elapsed.toFixed(2),
+    cps: cps.toFixed(2),
+    wpm,
+    errors,
+    aiErrors,
+    aiCps: aiSpeedCPS.toFixed(2),
+    accuracy,
+    winner
+  });
+}
+
+/* ======= STATS MODAL ======= */
+function showStatsModal(stats){
+  modalWrap.style.display = 'flex';
+  modalWrap.innerHTML = `
+    <div class="modal-backdrop" id="backdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <h2>Race Results — ${escapeHtml(stats.winner)}</h2>
+        <div style="color:var(--muted);margin-top:6px">Prompt: "${escapeHtml(stats.prompt)}"</div>
+        <div class="grid">
+          <div><strong>Time</strong><div>${stats.elapsed} s</div></div>
+          <div><strong>WPM</strong><div>${stats.wpm}</div></div>
+          <div><strong>CPS (you)</strong><div>${stats.cps}</div></div>
+          <div><strong>CPS (AI)</strong><div>${stats.aiCps}</div></div>
+          <div><strong>Errors (you)</strong><div>${stats.errors}</div></div>
+          <div><strong>Errors (AI)</strong><div>${stats.aiErrors}</div></div>
+          <div><strong>Accuracy</strong><div>${stats.accuracy}%</div></div>
+          <div><strong>Winner</strong><div>${escapeHtml(stats.winner)}</div></div>
         </div>
-      );
-    }
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="modalNew">New Race</button>
+          <button id="modalClose">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalNew').addEventListener('click', ()=>{
+    modalWrap.style.display = 'none';
+    newRace();
+  });
+  document.getElementById('modalClose').addEventListener('click', ()=>{
+    modalWrap.style.display = 'none';
+  });
+}
 
-    function App(){
-      const [tab, setTab] = useState('projects');
-      const [hoverSpot, setHoverSpot] = useState({ x: -9999, y: -9999 });
-      const [hoveredId, setHoveredId] = useState(null);
-      const [hoveredCycleIdx, setHoveredCycleIdx] = useState(0);
-      const [modalProject, setModalProject] = useState(null);
-      const spotlightRef = useRef();
-      const rootRef = useRef();
+/* ======= MAIN LOOPS ======= */
+let lastFrame = performance.now();
+function mainLoop(now){
+  const dt = (now - lastFrame) / 1000;
+  lastFrame = now;
+  if(!finished){
+    updateAI(dt);
+    draw();
+    checkFinish();
+  }
+  requestAnimationFrame(mainLoop);
+}
+requestAnimationFrame(mainLoop);
 
-      useEffect(() => {
-        const el = spotlightRef.current;
-        if(!el) return;
-        el.style.left = hoverSpot.x + 'px';
-        el.style.top = hoverSpot.y + 'px';
-        el.style.opacity = hoveredId ? '1' : '0';
-      }, [hoverSpot, hoveredId]);
+/* ======= BUTTONS & UI ======= */
+newBtn.addEventListener('click', ()=>{
+  newRace();
+  promptArea.focus();
+});
+skipBtn.addEventListener('click', ()=>{
+  newRace();
+  promptArea.focus();
+});
+randomToggle.addEventListener('click', ()=>{
+  randomPrompts = !randomPrompts;
+  randomToggle.innerText = `Random Prompts: ${randomPrompts ? 'ON' : 'OFF'}`;
+});
 
-      // cycle preview images every 2.5s when hovering
-      useEffect(()=>{
-        if(!hoveredId){ setHoveredCycleIdx(0); return; }
-        const item = PROJECTS.find(x=>x.id===hoveredId);
-        const imgs = item?.subtabs?.flatMap(s=>s.gallery)||[];
-        if(imgs.length===0) return;
-        const t = setInterval(()=>{
-          setHoveredCycleIdx(i => (i+1) % imgs.length);
-        }, 2500);
-        return ()=> clearInterval(t);
-      }, [hoveredId]);
+/* focus the prompt area so keypress works immediately */
+promptArea.addEventListener('click', ()=> promptArea.focus());
+promptArea.focus();
 
-      function handleCardHover(e, id){
-        // e may be a touch or mouse event
-        if(!e){ setHoveredId(null); return; }
-        setHoveredId(id);
-        // position spotlight only for pointer events that have coordinates
-        if(e && e.clientX != null){
-          const rect = rootRef.current.getBoundingClientRect();
-          setHoverSpot({ x: (e.clientX - rect.left), y: (e.clientY - rect.top) });
-        }
-      }
+/* keep displays in sync with initial prompt */
+updateDisplays();
 
-      // keyboard shortcuts
-      useEffect(() => {
-        function onKey(e){
-          if(e.key === '1') setTab('projects');
-          if(e.key === '2') setTab('about');
-          if(e.key === '3') setTab('contact');
-          if(e.key === 'Escape') setModalProject(null);
-        }
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-      }, []);
+/* Expose basic keyboard focus for mobile / tablet: capture keypresses via window as well */
+window.addEventListener('focus', ()=> promptArea.focus());
 
-      // when modal open, prevent background interaction by adding class on root container
-      const rootContainerClass = `relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 rounded-3xl p-8 root-padding ring-1 ring-white/6 shadow-2xl ${modalProject ? 'pointer-events-none blur-sm' : ''}`;
-
-      return (
-        <>
-          <div ref={rootRef} className={rootContainerClass}>
-            <div ref={spotlightRef} className="spotlight pointer-events-none" aria-hidden></div>
-
-            <header className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Your Name</h1>
-                <div className="text-xs sm:text-sm text-slate-400">Designer · Frontend · Community</div>
-              </div>
-              <nav className="flex gap-2">
-                <TabButton id="projects" label="Projects" active={tab==='projects'} onClick={setTab} icon="projects" />
-                <TabButton id="about" label="About" active={tab==='about'} onClick={setTab} icon="about" />
-                <TabButton id="contact" label="Contact" active={tab==='contact'} onClick={setTab} icon="contact" />
-              </nav>
-            </header>
-
-            <main>
-              {tab === 'projects' && (
-                <section>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {PROJECTS.map(p => (
-                      <ProjectCard key={p.id} project={p} onHover={handleCardHover} onOpen={(proj)=>setModalProject(proj)} />
-                    ))}
-                  </div>
-
-                  <div className="mt-6 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                    <div className="preview-box w-40 h-28 sm:w-56 sm:h-36 rounded-lg bg-slate-700/60 overflow-hidden border border-white/6 flex items-center justify-center">
-                      {/* large preview area: show hovered image or default message. */}
-                      {hoveredId ? (
-                        (() => {
-                          const item = PROJECTS.find(x=>x.id===hoveredId);
-                          const allImgs = item?.subtabs?.flatMap(s=>s.gallery)||[];
-                          if(allImgs.length>0) return (<img src={allImgs[hoveredCycleIdx]} alt={item.title} className="w-full h-full object-cover" />);
-                          if(item && item.img) return (<img src={item.img} alt={item.title} className="w-full h-full object-cover" />)
-                          return (<div className="p-4 text-sm text-slate-300 text-center">No high-res preview for this project.</div>)
-                        })()
-                      ) : (
-                        <div className="p-4 text-sm text-slate-400 text-center">Hover a project to preview</div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 text-slate-300">
-                      <h3 className="font-semibold">Quick notes</h3>
-                      <ul className="mt-2 list-disc ml-5 text-sm text-slate-400">
-                        <li>Tap/click a card to open the project's sub-tabs gallery (overlaid modal).</li>
-                        <li>Modal auto-advances its subtabs every 5 seconds and shows up to 6 thumbnail tabs.</li>
-                        <li>Use keys 1/2/3 to jump between main tabs; Esc closes modal.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {tab === 'about' && (
-                <section className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-1 bg-slate-800/40 rounded-2xl p-4 flex flex-col items-center gap-3">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 to-pink-400 overflow-hidden ring-1 ring-white/6"></div>
-                      <div className="text-center">
-                        <div className="font-semibold">Your Name</div>
-                        <div className="text-xs text-slate-400">Frontend & Community</div>
-                      </div>
-                    </div>
-                    <div className="md:col-span-2 bg-slate-800/30 rounded-2xl p-4">
-                      <p className="text-slate-300">Hello — I build things for communities and help creative businesses get noticed. I enjoy mixing practical marketing, friendly customer interaction, and clean UI to make people feel welcome.</p>
-                      <div className="mt-3 text-sm text-slate-400">Skills: HTML · CSS · React · Figma · Email campaigns · Events</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="col-span-1 bg-slate-800/20 rounded-2xl p-4">Achievements and quick links</div>
-                    <div className="col-span-2 bg-slate-800/20 rounded-2xl p-4">Community & events: short paragraph about how you handle event signups and on-site promotions.</div>
-                  </div>
-                </section>
-              )}
-
-              {tab === 'contact' && (
-                <section>
-                  <div className="bg-slate-800/20 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold">Get in touch</h3>
-                      <p className="text-slate-400 text-sm mt-2">I respond to messages about jobs, collabs, and bookings. Drop a note below or scan the QR during events.</p>
-                      <div className="mt-4 text-sm text-slate-300">Email: <span className="text-amber-400">you@domain.com</span></div>
-                      <div className="mt-2 text-sm text-slate-300">Phone: <span className="text-amber-400">(555) 555-5555</span></div>
-                    </div>
-                    <div>
-                      <form onSubmit={(e)=>{ e.preventDefault(); alert('Message submitted — replace this with your serverless form endpoint.'); }} className="space-y-3">
-                        <input placeholder="Your name" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
-                        <input placeholder="Email" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6" />
-                        <textarea placeholder="Message" rows="4" className="w-full p-3 rounded-md bg-slate-700/40 border border-white/6"></textarea>
-                        <div className="flex justify-end">
-                          <button className="px-4 py-2 rounded-md bg-amber-500 text-slate-900 font-semibold">Send</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </section>
-              )}
-            </main>
-
-            <footer className="mt-6 text-xs text-slate-500">Built as a single-file React app — drop this <code className="text-amber-400">index.html</code> into a GitHub repo and enable Pages on the main branch to publish.</footer>
-          </div>
-
-          {/* modal rendered outside root container so it stays sharp */}
-          <SubTabModal open={!!modalProject} project={modalProject} onClose={()=>setModalProject(null)} />
-        </>
-      );
-    }
-
-    // Render App
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+</script>
 </body>
 </html>
 
